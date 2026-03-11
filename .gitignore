@@ -1,0 +1,14 @@
+node_modules/
+dist/
+*.tsbuildinfo
+.DS_Store
+
+# FLAW output files
+flaw-report-*.html
+flaw-report-*.json
+flaw-report-*.md
+flaw-fixes.md
+flaw-prompt.md
+flaw-roadmap.md
+flaw-purpose-plan.md
+.cursorrules

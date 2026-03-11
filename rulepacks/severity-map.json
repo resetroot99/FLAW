@@ -1,0 +1,26 @@
+{
+  "schemaVersion": "2.0.0",
+  "title": "FAIL Kit Severity Map",
+  "severities": {
+    "critical": { "rank": 4, "scorePenalty": 12, "launchBlockingByDefault": true, "description": "Breaks trust, security, data integrity, or a core user flow." },
+    "high": { "rank": 3, "scorePenalty": 7, "launchBlockingByDefault": false, "description": "Serious functional or structural risk." },
+    "medium": { "rank": 2, "scorePenalty": 4, "launchBlockingByDefault": false, "description": "Meaningful weakness that increases fragility." },
+    "low": { "rank": 1, "scorePenalty": 1, "launchBlockingByDefault": false, "description": "Minor issue or polish gap." },
+    "info": { "rank": 0, "scorePenalty": 0, "launchBlockingByDefault": false, "description": "Informational observation." }
+  },
+  "confidence": {
+    "high": { "multiplier": 1.0 },
+    "medium": { "multiplier": 0.75 },
+    "low": { "multiplier": 0.5 }
+  },
+  "autoFailConditions": [
+    { "id": "AF-001", "label": "False success in core flow" },
+    { "id": "AF-002", "label": "Core action dead or unwired" },
+    { "id": "AF-003", "label": "Missing server-side auth on protected flow" },
+    { "id": "AF-004", "label": "Missing authorization on protected resource" },
+    { "id": "AF-005", "label": "Tenant isolation failure" },
+    { "id": "AF-006", "label": "Secret exposure" },
+    { "id": "AF-007", "label": "Persistence claimed but not durable" },
+    { "id": "AF-008", "label": "Business-critical domain rule is wrong" }
+  ]
+}

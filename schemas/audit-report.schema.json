@@ -1,0 +1,129 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://failkit.dev/schemas/audit-report.schema.json",
+  "title": "FAIL Kit Audit Report",
+  "type": "object",
+  "required": ["schemaVersion", "reportId", "project", "audit", "summary", "scores", "findings", "smellIndex", "generatedAt"],
+  "properties": {
+    "schemaVersion": { "type": "string" },
+    "reportId": { "type": "string" },
+    "generatedAt": { "type": "string", "format": "date-time" },
+    "project": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": { "type": "string" },
+        "path": { "type": "string" },
+        "branch": { "type": "string" },
+        "commitSha": { "type": "string" },
+        "framework": { "type": "string" },
+        "runtime": { "type": "string" },
+        "packageManager": { "type": "string" }
+      }
+    },
+    "audit": {
+      "type": "object",
+      "required": ["type", "mode"],
+      "properties": {
+        "type": { "type": "string", "enum": ["launch-readiness", "vibe-code-integrity", "security-review", "quick-scan", "custom"] },
+        "mode": { "type": "string", "enum": ["static", "runtime", "hybrid"] },
+        "durationMs": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "required": ["totalScore", "maxScore", "rating", "status", "criticalCount", "highCount", "mediumCount", "lowCount", "topRisks", "recommendation"],
+      "properties": {
+        "totalScore": { "type": "number", "minimum": 0, "maximum": 100 },
+        "maxScore": { "type": "number" },
+        "rating": { "type": "string", "enum": ["production-ready", "strong-but-needs-targeted-fixes", "functional-but-risky", "misleading-fragile", "cosmetic-not-trustworthy"] },
+        "status": { "type": "string", "enum": ["pass", "conditional-pass", "fail"] },
+        "criticalCount": { "type": "integer" },
+        "highCount": { "type": "integer" },
+        "mediumCount": { "type": "integer" },
+        "lowCount": { "type": "integer" },
+        "topRisks": { "type": "array", "items": { "type": "string" } },
+        "recommendation": { "type": "string" },
+        "launchBlockers": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "scores": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["categoryId", "categoryName", "score", "maxScore", "weight", "status"],
+        "properties": {
+          "categoryId": { "type": "string" },
+          "categoryName": { "type": "string" },
+          "score": { "type": "number" },
+          "maxScore": { "type": "number" },
+          "weight": { "type": "number" },
+          "status": { "type": "string", "enum": ["pass", "warning", "fail"] }
+        }
+      }
+    },
+    "smellIndex": {
+      "type": "object",
+      "required": ["score", "maxScore", "level", "smells"],
+      "properties": {
+        "score": { "type": "integer" },
+        "maxScore": { "type": "integer" },
+        "level": { "type": "string", "enum": ["low", "moderate", "high", "severe"] },
+        "smells": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "label", "count"],
+            "properties": {
+              "id": { "type": "string" },
+              "label": { "type": "string" },
+              "count": { "type": "integer" }
+            }
+          }
+        }
+      }
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "title", "ruleId", "categoryId", "severity", "confidence", "status", "summary", "impact", "location"],
+        "properties": {
+          "id": { "type": "string" },
+          "title": { "type": "string" },
+          "ruleId": { "type": "string" },
+          "categoryId": { "type": "string" },
+          "severity": { "type": "string", "enum": ["critical", "high", "medium", "low", "info"] },
+          "confidence": { "type": "string", "enum": ["high", "medium", "low"] },
+          "status": { "type": "string", "enum": ["open", "accepted-risk", "fixed", "suppressed"] },
+          "labels": { "type": "array", "items": { "type": "string" } },
+          "summary": { "type": "string" },
+          "impact": { "type": "string" },
+          "location": {
+            "type": "object",
+            "properties": {
+              "file": { "type": "string" },
+              "startLine": { "type": "integer" },
+              "endLine": { "type": "integer" },
+              "symbol": { "type": "string" }
+            }
+          },
+          "suggestedFix": { "type": "string" }
+        }
+      }
+    },
+    "gates": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "label", "status"],
+        "properties": {
+          "id": { "type": "string" },
+          "label": { "type": "string" },
+          "status": { "type": "string", "enum": ["pass", "fail", "not-evaluated"] },
+          "reason": { "type": "string" }
+        }
+      }
+    }
+  }
+}

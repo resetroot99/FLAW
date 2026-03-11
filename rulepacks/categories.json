@@ -1,0 +1,12 @@
+[
+  { "id": "FR", "name": "Feature Reality & End-to-End Integrity", "maxScore": 15 },
+  { "id": "FW", "name": "Frontend Wiring & Interaction Integrity", "maxScore": 12 },
+  { "id": "BE", "name": "Backend / API Integrity", "maxScore": 12 },
+  { "id": "DM", "name": "Data Model & Persistence Integrity", "maxScore": 10 },
+  { "id": "VB", "name": "Validation & Business Rule Accuracy", "maxScore": 8 },
+  { "id": "EH", "name": "Error Handling & Failure Honesty", "maxScore": 8 },
+  { "id": "SA", "name": "Security, Auth, and Authorization", "maxScore": 12 },
+  { "id": "MH", "name": "Maintainability & Code Health", "maxScore": 8 },
+  { "id": "TV", "name": "Testing & Runtime Verification", "maxScore": 8 },
+  { "id": "DO", "name": "Deployment, Observability & Documentation", "maxScore": 7 }
+]
