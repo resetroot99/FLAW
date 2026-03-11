@@ -1,5 +1,5 @@
 // FLAW — Cross-boundary wiring verification
-// Catches the #1 vibe-coder failure: code that looks connected but isn't
+// Catches the #1 AI-generated failure: code that looks connected but isn't
 
 import type { AnalyzerContext, AnalyzerResult } from '../types/index.js';
 import { makeFinding, makeSmell, emptyResult } from './base.js';

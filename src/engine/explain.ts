@@ -1,6 +1,6 @@
 /**
  * Beginner-friendly explanations for every FLAW rule.
- * Written in plain English for vibe coders who may not know the jargon.
+ * Written in plain English for developers who may not know the jargon.
  */
 
 export interface RuleExplain {

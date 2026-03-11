@@ -1,21 +1,47 @@
 {
-  "name": "flaw",
+  "name": "flaw-kit",
   "version": "2.0.0",
   "description": "FLAW — Flow Logic Audit Watch. Code integrity auditor for AI-generated projects.",
   "type": "module",
   "bin": {
-    "flaw": "./dist/index.js"
+    "flaw": "dist/index.js"
   },
+  "files": [
+    "dist/",
+    "rulepacks/",
+    "schemas/",
+    "LICENSE.txt"
+  ],
   "scripts": {
     "build": "tsc",
     "dev": "tsx src/index.ts",
-    "flaw": "tsx src/index.ts"
+    "flaw": "tsx src/index.ts",
+    "prepublishOnly": "npm run build"
   },
-  "keywords": ["audit", "code-quality", "ai-code-review", "static-analysis", "flaw"],
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "audit",
+    "code-quality",
+    "ai-code-review",
+    "static-analysis",
+    "flaw",
+    "code-audit"
+  ],
   "license": "MIT",
+  "author": "resetroot99",
+  "contributors": [
+    "resetroot99",
+    "ajakvani"
+  ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/resetroot99/FLAW.git"
+    "url": "git+https://github.com/resetroot99/FLAW.git"
+  },
+  "homepage": "https://github.com/resetroot99/FLAW",
+  "bugs": {
+    "url": "https://github.com/resetroot99/FLAW/issues"
   },
   "devDependencies": {
     "typescript": "^5.4.0",

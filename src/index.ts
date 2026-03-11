@@ -17,6 +17,7 @@ import { generateRoadmap, exportRoadmap } from './engine/roadmap.js';
 import { exportAgentRules } from './engine/rules-generator.js';
 import { analyzePromiseVsReality } from './engine/promise-reality.js';
 import { generatePurposePlan, exportPurposePlan } from './engine/purpose-plan.js';
+import { startRepl } from './engine/repl.js';
 import type { AuditReport } from './types/index.js';
 
 function printUsage(): void {
@@ -24,9 +25,16 @@ function printUsage(): void {
   FLAW — Flow Logic Audit Watch
 
   Usage:
-    flaw [path] [options]
+    flaw                            Launch interactive mode
+    flaw [path]                     Scan and show report
+    flaw [path] [options]           Scan with export options
+
+  Interactive Mode:
+    flaw                            REPL with /commands on current directory
+    flaw ../my-app -i               REPL targeting a specific project
 
   Options:
+    -i, --interactive  Launch interactive REPL
     --html         Export HTML report
     --json         Export JSON report
     --markdown     Export Markdown report
@@ -44,6 +52,7 @@ function printUsage(): void {
     --help         Show this help message
 
   Examples:
+    flaw                            Interactive mode
     flaw .                          Audit current directory
     flaw ../my-app --html           Audit and export HTML report
     flaw . --fixes                  Generate fix guide
@@ -62,6 +71,7 @@ async function main(): Promise<void> {
 
   // Parse args
   let targetPath = '.';
+  let interactive = false;
   let exportJsonFlag = false;
   let exportMdFlag = false;
   let exportHtmlFlag = false;
@@ -76,23 +86,25 @@ async function main(): Promise<void> {
   let noIgnore = false;
   let outputDir = '.';
   let quiet = false;
+  let hasFlags = false;
 
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
-    if (arg === '--json') exportJsonFlag = true;
-    else if (arg === '--markdown' || arg === '--md') exportMdFlag = true;
-    else if (arg === '--html') exportHtmlFlag = true;
-    else if (arg === '--fixes') exportFixesFlag = true;
-    else if (arg === '--prompt') exportPromptFlag = true;
-    else if (arg === '--prompt-stdout') promptStdout = true;
-    else if (arg === '--roadmap') exportRoadmapFlag = true;
-    else if (arg === '--purpose') exportPurposeFlag = true;
-    else if (arg === '--rules') exportRulesFlag = true;
-    else if (arg === '--rules-md') { exportRulesFlag = true; rulesFormat = 'claude'; }
-    else if (arg === '--watch') watchMode = true;
-    else if (arg === '--no-ignore') noIgnore = true;
+    if (arg === '--interactive' || arg === '-i') { interactive = true; hasFlags = true; }
+    else if (arg === '--json') { exportJsonFlag = true; hasFlags = true; }
+    else if (arg === '--markdown' || arg === '--md') { exportMdFlag = true; hasFlags = true; }
+    else if (arg === '--html') { exportHtmlFlag = true; hasFlags = true; }
+    else if (arg === '--fixes') { exportFixesFlag = true; hasFlags = true; }
+    else if (arg === '--prompt') { exportPromptFlag = true; hasFlags = true; }
+    else if (arg === '--prompt-stdout') { promptStdout = true; hasFlags = true; }
+    else if (arg === '--roadmap') { exportRoadmapFlag = true; hasFlags = true; }
+    else if (arg === '--purpose') { exportPurposeFlag = true; hasFlags = true; }
+    else if (arg === '--rules') { exportRulesFlag = true; hasFlags = true; }
+    else if (arg === '--rules-md') { exportRulesFlag = true; rulesFormat = 'claude'; hasFlags = true; }
+    else if (arg === '--watch') { watchMode = true; hasFlags = true; }
+    else if (arg === '--no-ignore') { noIgnore = true; }
     else if (arg === '--out' && args[i + 1]) { outputDir = args[++i]; }
-    else if (arg === '--quiet' || arg === '-q') quiet = true;
+    else if (arg === '--quiet' || arg === '-q') { quiet = true; hasFlags = true; }
     else if (!arg.startsWith('-')) targetPath = arg;
   }
 
@@ -100,6 +112,13 @@ async function main(): Promise<void> {
   if (!existsSync(root)) {
     console.error(`Path not found: ${root}`);
     process.exit(1);
+  }
+
+  // Interactive mode: bare `flaw`, `flaw -i`, or `flaw <path> -i`
+  // Also: if stdin is a TTY and no flags were given, go interactive
+  if (interactive || (args.length === 0 && process.stdin.isTTY)) {
+    await startRepl(root, resolve(outputDir), noIgnore, true);
+    return;
   }
 
   // Watch mode — enter and don't return
@@ -135,7 +154,6 @@ async function main(): Promise<void> {
   const packageJson = findPackageJson(root);
   const pkgName = packageJson?.name as string | undefined;
   const gitRepoName = getGitRepoName(root);
-  // Prefer: git repo name > package.json name (if not generic) > directory name
   const genericNames = new Set(['root', 'project', 'app', 'monorepo', 'repo', 'workspace', 'source', 'undefined', 'client', 'server', 'frontend', 'backend', 'web', 'api', 'main', 'src']);
   const projectName = gitRepoName
     || (pkgName && !genericNames.has(pkgName.toLowerCase()) ? pkgName : null)
