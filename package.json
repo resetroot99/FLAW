@@ -1,7 +1,7 @@
 {
   "name": "flaw",
   "version": "2.0.0",
-  "description": "FLAW — Flow Logic Audit Watch. Code integrity auditor for AI-generated and vibe-coded projects.",
+  "description": "FLAW — Flow Logic Audit Watch. Code integrity auditor for AI-generated projects.",
   "type": "module",
   "bin": {
     "flaw": "./dist/index.js"
@@ -11,7 +11,7 @@
     "dev": "tsx src/index.ts",
     "flaw": "tsx src/index.ts"
   },
-  "keywords": ["audit", "code-quality", "vibe-coding", "ai-code-review", "static-analysis", "flaw"],
+  "keywords": ["audit", "code-quality", "ai-code-review", "static-analysis", "flaw"],
   "license": "MIT",
   "repository": {
     "type": "git",
