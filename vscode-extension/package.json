@@ -1,0 +1,116 @@
+{
+  "name": "flaw-kit-vscode",
+  "displayName": "FLAW — Flow Logic Audit Watch",
+  "description": "Forensic code integrity auditor for AI-generated projects. Finds dead buttons, phantom endpoints, silent failures, and fake flows.",
+  "version": "2.0.0",
+  "publisher": "resetroot99",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Linters",
+    "Testing",
+    "Other"
+  ],
+  "keywords": [
+    "ai",
+    "code-audit",
+    "static-analysis",
+    "code-quality",
+    "flaw",
+    "fail-kit"
+  ],
+  "icon": "icon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/resetroot99/FLAW"
+  },
+  "homepage": "https://github.com/resetroot99/FLAW",
+  "activationEvents": [
+    "onLanguage:typescript",
+    "onLanguage:javascript",
+    "onLanguage:typescriptreact",
+    "onLanguage:javascriptreact",
+    "onLanguage:python"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "flaw.scanFile",
+        "title": "FLAW: Scan Current File"
+      },
+      {
+        "command": "flaw.scanWorkspace",
+        "title": "FLAW: Scan Workspace"
+      },
+      {
+        "command": "flaw.showReport",
+        "title": "FLAW: Show Report"
+      },
+      {
+        "command": "flaw.showScore",
+        "title": "FLAW: Show Score"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "flaw.scanFile",
+          "group": "flaw"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "FLAW",
+      "properties": {
+        "flaw.enableOnSave": {
+          "type": "boolean",
+          "default": true,
+          "description": "Run FLAW analysis on file save"
+        },
+        "flaw.enableRealTime": {
+          "type": "boolean",
+          "default": false,
+          "description": "Run FLAW analysis on every change (debounced)"
+        },
+        "flaw.excludePatterns": {
+          "type": "array",
+          "default": [
+            "**/node_modules/**",
+            "**/dist/**",
+            "**/build/**",
+            "**/.git/**"
+          ],
+          "description": "Glob patterns to exclude from analysis"
+        },
+        "flaw.severityMap": {
+          "type": "object",
+          "default": {
+            "critical": "Error",
+            "high": "Error",
+            "medium": "Warning",
+            "low": "Information",
+            "info": "Hint"
+          },
+          "description": "Map FLAW severity levels to VS Code diagnostic severity"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "package": "vsce package",
+    "build": "node esbuild.config.mjs",
+    "build:watch": "node esbuild.config.mjs --watch"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.85.0",
+    "@types/node": "^20.11.0",
+    "typescript": "^5.4.0",
+    "esbuild": "^0.20.0",
+    "@vscode/vsce": "^2.24.0"
+  }
+}
