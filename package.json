@@ -16,6 +16,8 @@
     "build": "tsc",
     "dev": "tsx src/index.ts",
     "flaw": "tsx src/index.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "prepublishOnly": "npm run build"
   },
   "engines": {
@@ -44,11 +46,13 @@
     "url": "https://github.com/resetroot99/FLAW/issues"
   },
   "devDependencies": {
-    "typescript": "^5.4.0",
+    "@types/node": "^20.11.0",
     "tsx": "^4.7.0",
-    "@types/node": "^20.11.0"
+    "typescript": "^5.4.0",
+    "vitest": "^4.0.18"
   },
   "dependencies": {
+    "flaw-kit": "^2.0.0",
     "glob": "^10.3.0"
   }
 }
