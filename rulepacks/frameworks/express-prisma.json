@@ -1,0 +1,58 @@
+{
+  "framework": "express-prisma",
+  "version": "1.0.0",
+  "rules": [
+    {
+      "id": "FK-EP-SCHEMA-001",
+      "title": "Prisma query may reference field not in schema",
+      "description": "A Prisma query selects or filters on a field name that doesn't appear in any model definition in schema.prisma. This will cause a runtime error.",
+      "severity": "high",
+      "category": "data-model",
+      "categoryId": "DM",
+      "labels": ["Broken", "Schema Drift"],
+      "pattern": "prisma\\.\\w+\\.(findMany|findFirst|findUnique|create|update|delete|upsert)\\(",
+      "crossFileCheck": true,
+      "impact": "Prisma client will throw an unknown field error at runtime.",
+      "suggestedFix": "Check schema.prisma for the correct field names, run prisma generate after schema changes."
+    },
+    {
+      "id": "FK-EP-ORDER-001",
+      "title": "Route handler registered before auth middleware",
+      "description": "A route handler (app.get/post/etc.) appears in the source code before the auth middleware (passport, jwt, session middleware) is applied via app.use(). Express processes middleware in registration order, so the route won't be protected.",
+      "severity": "high",
+      "category": "security-auth",
+      "categoryId": "SA",
+      "labels": ["Auth Gap", "Unsafe"],
+      "pattern": "app\\.(get|post|put|patch|delete)\\(",
+      "crossFileCheck": false,
+      "impact": "Routes registered before auth middleware are unprotected and can be accessed without authentication.",
+      "suggestedFix": "Move app.use(authMiddleware) before all protected route registrations, or add auth middleware inline per-route."
+    },
+    {
+      "id": "FK-EP-BODY-001",
+      "title": "req.body accessed without validation middleware",
+      "description": "An Express route handler accesses req.body properties without any visible validation middleware (express-validator, zod, joi, celebrate, yup) applied to the route or earlier in the middleware chain.",
+      "severity": "medium",
+      "category": "validation",
+      "categoryId": "VB",
+      "labels": ["Unsafe", "Fragile"],
+      "pattern": "req\\.body\\.(\\w+)|req\\.body\\[",
+      "crossFileCheck": false,
+      "impact": "Unvalidated request body can cause crashes, type errors, or injection attacks.",
+      "suggestedFix": "Add validation middleware (express-validator, zod schema, or joi) before the route handler."
+    },
+    {
+      "id": "FK-EP-INCLUDE-001",
+      "title": "Prisma relation access without include",
+      "description": "Code accesses a nested property on a Prisma query result (e.g. user.posts, order.items) but the query doesn't use include or select with nested fields. Prisma doesn't lazy-load relations.",
+      "severity": "high",
+      "category": "data-model",
+      "categoryId": "DM",
+      "labels": ["Broken", "Silent Failure"],
+      "pattern": "prisma\\.\\w+\\.(findMany|findFirst|findUnique)\\(",
+      "crossFileCheck": true,
+      "impact": "Accessing un-included relations returns undefined, causing silent data loss or crashes.",
+      "suggestedFix": "Add include: { relationName: true } to the Prisma query, or use select with nested fields."
+    }
+  ]
+}

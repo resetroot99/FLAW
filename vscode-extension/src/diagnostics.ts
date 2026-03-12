@@ -7,6 +7,9 @@ export class FlawDiagnosticsProvider implements vscode.Disposable {
   private statusBarItem: vscode.StatusBarItem;
   private debounceTimers: Map<string, NodeJS.Timeout> = new Map();
 
+  private _onDidUpdateDiagnostics = new vscode.EventEmitter<vscode.Uri>();
+  readonly onDidUpdateDiagnostics = this._onDidUpdateDiagnostics.event;
+
   constructor(statusBarItem: vscode.StatusBarItem) {
     this.diagnosticCollection = vscode.languages.createDiagnosticCollection('flaw');
     this.statusBarItem = statusBarItem;
@@ -52,6 +55,7 @@ export class FlawDiagnosticsProvider implements vscode.Disposable {
 
     this.diagnosticCollection.set(doc.uri, diagnostics);
     this.updateStatusBar();
+    this._onDidUpdateDiagnostics.fire(doc.uri);
   }
 
   debouncedAnalyze(doc: vscode.TextDocument): void {
@@ -114,8 +118,13 @@ export class FlawDiagnosticsProvider implements vscode.Disposable {
     }
   }
 
+  getDiagnosticCollection(): vscode.DiagnosticCollection {
+    return this.diagnosticCollection;
+  }
+
   dispose(): void {
     this.diagnosticCollection.dispose();
+    this._onDidUpdateDiagnostics.dispose();
     for (const timer of this.debounceTimers.values()) {
       clearTimeout(timer);
     }

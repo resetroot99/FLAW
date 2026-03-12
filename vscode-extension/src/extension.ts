@@ -2,6 +2,10 @@ import * as vscode from 'vscode';
 import { FlawDiagnosticsProvider } from './diagnostics';
 import { FlawCodeActionProvider } from './codeActions';
 import { FlawReportPanel } from './reportPanel';
+import { FlawHoverProvider } from './hoverProvider';
+import { FlawCodeLensProvider } from './codelens';
+import { FlawTreeDataProvider } from './treeView';
+import { updateInlineDecorations, clearDecorations, disposeDecorationTypes } from './inlineDecorations';
 
 let diagnosticsProvider: FlawDiagnosticsProvider;
 let statusBarItem: vscode.StatusBarItem;
@@ -19,18 +23,99 @@ export function activate(context: vscode.ExtensionContext) {
   diagnosticsProvider = new FlawDiagnosticsProvider(statusBarItem);
   context.subscriptions.push(diagnosticsProvider);
 
-  // Code action provider
-  const codeActionProvider = new FlawCodeActionProvider(diagnosticsProvider);
-  const selector = [
+  // Language selector for all providers
+  const selector: vscode.DocumentSelector = [
     { language: 'typescript' },
     { language: 'javascript' },
     { language: 'typescriptreact' },
     { language: 'javascriptreact' },
     { language: 'python' },
   ];
+
+  // Code action provider
+  const codeActionProvider = new FlawCodeActionProvider(diagnosticsProvider);
   context.subscriptions.push(
     vscode.languages.registerCodeActionsProvider(selector, codeActionProvider, {
       providedCodeActionKinds: FlawCodeActionProvider.providedCodeActionKinds,
+    })
+  );
+
+  // Hover provider
+  const hoverProvider = new FlawHoverProvider();
+  context.subscriptions.push(
+    vscode.languages.registerHoverProvider(selector, hoverProvider)
+  );
+
+  // CodeLens provider
+  const codeLensProvider = new FlawCodeLensProvider();
+  context.subscriptions.push(
+    vscode.languages.registerCodeLensProvider(selector, codeLensProvider)
+  );
+
+  // Tree view
+  const treeDataProvider = new FlawTreeDataProvider();
+  const treeView = vscode.window.createTreeView('flawFindings', {
+    treeDataProvider,
+    showCollapseAll: true,
+  });
+  context.subscriptions.push(treeView);
+
+  // Hook: update inline decorations and tree view when diagnostics change
+  context.subscriptions.push(
+    diagnosticsProvider.onDidUpdateDiagnostics((uri) => {
+      // Refresh tree view
+      treeDataProvider.refresh();
+
+      // Refresh CodeLens
+      codeLensProvider.refresh();
+
+      // Update inline decorations for visible editors showing this file
+      for (const editor of vscode.window.visibleTextEditors) {
+        if (editor.document.uri.toString() === uri.toString()) {
+          const diags = vscode.languages.getDiagnostics(editor.document.uri);
+          updateInlineDecorations(editor, diags);
+        }
+      }
+    })
+  );
+
+  // Update decorations when the active editor changes
+  context.subscriptions.push(
+    vscode.window.onDidChangeActiveTextEditor((editor) => {
+      if (editor) {
+        const diags = vscode.languages.getDiagnostics(editor.document.uri);
+        updateInlineDecorations(editor, diags);
+      }
+    })
+  );
+
+  // Update decorations when visible editors change
+  context.subscriptions.push(
+    vscode.window.onDidChangeVisibleTextEditors((editors) => {
+      for (const editor of editors) {
+        const diags = vscode.languages.getDiagnostics(editor.document.uri);
+        updateInlineDecorations(editor, diags);
+      }
+    })
+  );
+
+  // React to config changes for inline annotations
+  context.subscriptions.push(
+    vscode.workspace.onDidChangeConfiguration((e) => {
+      if (e.affectsConfiguration('flaw.showInlineAnnotations')) {
+        for (const editor of vscode.window.visibleTextEditors) {
+          const config = vscode.workspace.getConfiguration('flaw');
+          if (config.get<boolean>('showInlineAnnotations', true)) {
+            const diags = vscode.languages.getDiagnostics(editor.document.uri);
+            updateInlineDecorations(editor, diags);
+          } else {
+            clearDecorations(editor);
+          }
+        }
+      }
+      if (e.affectsConfiguration('flaw.showCodeLens')) {
+        codeLensProvider.refresh();
+      }
     })
   );
 
@@ -84,6 +169,10 @@ export function activate(context: vscode.ExtensionContext) {
           vscode.commands.executeCommand('flaw.scanWorkspace');
         }
       });
+    }),
+
+    vscode.commands.registerCommand('flaw.refreshFindings', () => {
+      treeDataProvider.refresh();
     })
   );
 
@@ -107,6 +196,9 @@ export function activate(context: vscode.ExtensionContext) {
       }
     })
   );
+
+  // Clean up decoration types on deactivation
+  context.subscriptions.push({ dispose: disposeDecorationTypes });
 
   // Analyze already-open documents
   vscode.workspace.textDocuments.forEach(doc => {

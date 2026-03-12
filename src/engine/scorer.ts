@@ -1,8 +1,10 @@
 import type {
   Finding, SmellHit, CategoryScore, SmellIndex, AuditSummary, Gate,
   Rating, AuditStatus, SmellLevel, CategoryStatus, CATEGORIES,
+  FingerprintHit,
 } from '../types/index.js';
 import { CATEGORIES as CATS } from '../types/index.js';
+import { computeFingerprints } from '../analyzers/smell-fingerprint.js';
 
 const SEVERITY_PENALTY: Record<string, number> = {
   critical: 12,
@@ -161,6 +163,8 @@ export function computeSummary(
     recommendation = `Do not launch. ${criticalCount} critical issue(s) and ${failedGates.length} failed gate(s) must be resolved.`;
   }
 
+  const fingerprint = computeFingerprints(smellIndex.smells);
+
   return {
     totalScore,
     maxScore: 100,
@@ -173,5 +177,6 @@ export function computeSummary(
     topRisks,
     recommendation,
     launchBlockers,
+    fingerprint,
   };
 }

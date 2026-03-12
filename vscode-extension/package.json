@@ -2,8 +2,8 @@
   "name": "flaw-kit-vscode",
   "displayName": "FLAW — Flow Logic Audit Watch",
   "description": "Forensic code integrity auditor for AI-generated projects. Finds dead buttons, phantom endpoints, silent failures, and fake flows.",
-  "version": "2.0.0",
-  "publisher": "resetroot99",
+  "version": "2.1.0",
+  "publisher": "AliJakvani",
   "license": "MIT",
   "engines": {
     "vscode": "^1.85.0"
@@ -52,6 +52,11 @@
       {
         "command": "flaw.showScore",
         "title": "FLAW: Show Score"
+      },
+      {
+        "command": "flaw.refreshFindings",
+        "title": "FLAW: Refresh Findings",
+        "icon": "$(refresh)"
       }
     ],
     "menus": {
@@ -60,8 +65,36 @@
           "command": "flaw.scanFile",
           "group": "flaw"
         }
+      ],
+      "view/title": [
+        {
+          "command": "flaw.refreshFindings",
+          "when": "view == flawFindings",
+          "group": "navigation"
+        },
+        {
+          "command": "flaw.scanWorkspace",
+          "when": "view == flawFindings",
+          "group": "navigation"
+        }
       ]
     },
+    "views": {
+      "explorer": [
+        {
+          "id": "flawFindings",
+          "name": "FLAW Findings",
+          "icon": "$(shield)",
+          "contextualTitle": "FLAW Findings"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "flawFindings",
+        "contents": "No FLAW findings yet.\n[Scan Workspace](command:flaw.scanWorkspace)"
+      }
+    ],
     "configuration": {
       "title": "FLAW",
       "properties": {
@@ -95,6 +128,16 @@
             "info": "Hint"
           },
           "description": "Map FLAW severity levels to VS Code diagnostic severity"
+        },
+        "flaw.showInlineAnnotations": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show inline annotations at end of lines with FLAW findings (Error Lens style)"
+        },
+        "flaw.showCodeLens": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show CodeLens annotations above functions with FLAW findings"
         }
       }
     }

@@ -1,0 +1,7 @@
+- id: flaw
+  name: FLAW — Code Integrity Audit
+  entry: npx flaw-kit --pre-commit
+  language: node
+  types: [file]
+  types_or: [javascript, jsx, ts, tsx, python]
+  pass_filenames: true

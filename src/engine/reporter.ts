@@ -1,4 +1,5 @@
 import type { AuditReport, Finding, CategoryScore, SmellIndex, Gate, TriageResult } from '../types/index.js';
+import type { BaselineDiff } from './baseline.js';
 import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { diagnoseSymptoms } from './symptoms.js';
@@ -85,6 +86,16 @@ export function printReport(report: AuditReport, triage?: TriageResult, suppress
     }
   }
   console.log('');
+
+  // AI Fingerprint
+  if (summary.fingerprint && summary.fingerprint.length > 0) {
+    console.log(`${c.bold}AI Fingerprint:${c.reset}`);
+    for (const fp of summary.fingerprint) {
+      const fpColor = fp.confidence >= 60 ? c.red : fp.confidence >= 30 ? c.yellow : c.dim;
+      console.log(`  ${fpColor}${fp.tool}${c.reset} (${fp.confidence}% confidence, ${fp.hits} pattern${fp.hits !== 1 ? 's' : ''} matched)`);
+    }
+    console.log('');
+  }
 
   // Issue counts
   const suppressedNote = suppressedCount ? ` ${c.dim}(${suppressedCount} suppressed by .flaw-ignore)${c.reset}` : '';
@@ -201,6 +212,84 @@ export function printReport(report: AuditReport, triage?: TriageResult, suppress
     console.log(`${c.bold}${c.red}Launch Blockers:${c.reset}`);
     for (const blocker of summary.launchBlockers) {
       console.log(`  ${c.red}■${c.reset} ${blocker}`);
+    }
+  }
+
+  console.log('');
+}
+
+export function printBaselineDiff(diff: BaselineDiff): void {
+  const MAX_DISPLAY = 5;
+
+  console.log(`${c.bold}Baseline Comparison${c.reset}`);
+  console.log(`${c.dim}${'─'.repeat(56)}${c.reset}`);
+
+  // Score delta line
+  const deltaAbs = Math.abs(diff.scoreDelta);
+  const deltaSign = diff.scoreDelta > 0 ? '+' : diff.scoreDelta < 0 ? '' : '±';
+  const deltaArrow = diff.scoreDelta > 0 ? ' \u25B2' : diff.scoreDelta < 0 ? ' \u25BC' : '';
+  const deltaColor = diff.scoreDelta > 0 ? c.green : diff.scoreDelta < 0 ? c.red : c.dim;
+  console.log(`  ${c.bold}Score:${c.reset} ${diff.previousScore} \u2192 ${deltaColor}${diff.currentScore}${c.reset} (${deltaColor}${deltaSign}${deltaAbs}${c.reset})${deltaColor}${deltaArrow}${c.reset}`);
+
+  // Fixed count
+  if (diff.fixedFindings.length > 0) {
+    console.log(`  ${c.green}Fixed:${c.reset} ${diff.fixedFindings.length} issue${diff.fixedFindings.length !== 1 ? 's' : ''} resolved`);
+  }
+
+  // New count
+  if (diff.newFindings.length > 0) {
+    console.log(`  ${c.red}New:${c.reset}   ${diff.newFindings.length} issue${diff.newFindings.length !== 1 ? 's' : ''} introduced`);
+  }
+
+  // Regressions count
+  if (diff.regressions.length > 0) {
+    console.log(`  ${c.red}Worse:${c.reset} ${diff.regressions.length} issue${diff.regressions.length !== 1 ? 's' : ''} regressed in severity`);
+  }
+
+  // New findings list
+  if (diff.newFindings.length > 0) {
+    console.log('');
+    console.log(`  ${c.bold}New Issues:${c.reset}`);
+    const shown = diff.newFindings.slice(0, MAX_DISPLAY);
+    for (const f of shown) {
+      const sevTag = `${severityColor(f.severity)}${f.severity.toUpperCase().padEnd(9)}${c.reset}`;
+      const loc = `${f.location.file}${f.location.startLine ? `:${f.location.startLine}` : ''}`;
+      console.log(`    ${sevTag} ${f.ruleId}  ${f.title} in ${loc}`);
+    }
+    const remaining = diff.newFindings.length - MAX_DISPLAY;
+    if (remaining > 0) {
+      console.log(`    ${c.dim}... (and ${remaining} more)${c.reset}`);
+    }
+  }
+
+  // Fixed findings list
+  if (diff.fixedFindings.length > 0) {
+    console.log('');
+    console.log(`  ${c.bold}Fixed Issues:${c.reset}`);
+    const shown = diff.fixedFindings.slice(0, MAX_DISPLAY);
+    for (const f of shown) {
+      const loc = `${f.file}${f.line ? `:${f.line}` : ''}`;
+      console.log(`    ${c.green}\u2713${c.reset} ${f.ruleId}  ${f.title} in ${loc}`);
+    }
+    const remaining = diff.fixedFindings.length - MAX_DISPLAY;
+    if (remaining > 0) {
+      console.log(`    ${c.dim}... (and ${remaining} more)${c.reset}`);
+    }
+  }
+
+  // Regressions list
+  if (diff.regressions.length > 0) {
+    console.log('');
+    console.log(`  ${c.bold}Regressions:${c.reset}`);
+    const shown = diff.regressions.slice(0, MAX_DISPLAY);
+    for (const f of shown) {
+      const sevTag = `${severityColor(f.severity)}${f.severity.toUpperCase().padEnd(9)}${c.reset}`;
+      const loc = `${f.location.file}${f.location.startLine ? `:${f.location.startLine}` : ''}`;
+      console.log(`    ${sevTag} ${f.ruleId}  ${f.title} in ${loc}`);
+    }
+    const remaining = diff.regressions.length - MAX_DISPLAY;
+    if (remaining > 0) {
+      console.log(`    ${c.dim}... (and ${remaining} more)${c.reset}`);
     }
   }
 

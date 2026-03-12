@@ -1,0 +1,71 @@
+{
+  "framework": "fastapi",
+  "version": "1.0.0",
+  "rules": [
+    {
+      "id": "FK-FA-RETURN-001",
+      "title": "Route handler return may not match response_model",
+      "description": "A FastAPI route declares a response_model but the return statement constructs a dict or object whose keys don't align with the Pydantic model fields defined in the same file or imports.",
+      "severity": "high",
+      "category": "backend-integrity",
+      "categoryId": "BE",
+      "labels": ["Broken", "Schema Drift"],
+      "pattern": "response_model\\s*=\\s*(\\w+)",
+      "crossFileCheck": true,
+      "impact": "FastAPI will raise a validation error at runtime when returned data doesn't match the response_model.",
+      "suggestedFix": "Ensure the return dict/object keys match all required fields of the response_model Pydantic class."
+    },
+    {
+      "id": "FK-FA-DEPENDS-001",
+      "title": "Depends() references function not found in imports",
+      "description": "A Depends() call references a callable that is not imported or defined in the current file. The dependency injection will fail at startup.",
+      "severity": "high",
+      "category": "backend-integrity",
+      "categoryId": "BE",
+      "labels": ["Broken", "Fake Flow"],
+      "pattern": "Depends\\(\\s*(\\w+)\\s*\\)",
+      "crossFileCheck": true,
+      "impact": "FastAPI app will fail to start or the endpoint will crash when the dependency cannot be resolved.",
+      "suggestedFix": "Import the referenced dependency function or define it in the current file."
+    },
+    {
+      "id": "FK-FA-RESPONSE-001",
+      "title": "POST/PUT endpoint missing response_model",
+      "description": "A POST or PUT route handler does not declare a response_model parameter. Without it, FastAPI won't validate or document the response shape, and clients won't know what to expect.",
+      "severity": "medium",
+      "category": "backend-integrity",
+      "categoryId": "BE",
+      "labels": ["Incomplete", "Schema Drift"],
+      "pattern": "@(?:router|app)\\.(post|put)\\(",
+      "crossFileCheck": false,
+      "impact": "No response validation or OpenAPI documentation for write endpoints. Clients may receive unexpected shapes.",
+      "suggestedFix": "Add response_model=YourPydanticModel to the route decorator."
+    },
+    {
+      "id": "FK-FA-CORS-001",
+      "title": "CORS allows all origins or misconfigured",
+      "description": "CORSMiddleware is configured with allow_origins=['*'] or the origins list doesn't match typical frontend URL patterns (localhost for dev, actual domain for prod).",
+      "severity": "high",
+      "category": "security-auth",
+      "categoryId": "SA",
+      "labels": ["Unsafe", "Fragile"],
+      "pattern": "CORSMiddleware",
+      "crossFileCheck": false,
+      "impact": "Wildcard CORS allows any website to make authenticated requests to your API, enabling CSRF-like attacks.",
+      "suggestedFix": "Replace '*' with specific allowed origins. Use environment variables for different environments."
+    },
+    {
+      "id": "FK-FA-ASYNC-001",
+      "title": "Background task function may not be async or awaited",
+      "description": "A BackgroundTasks.add_task() call references a function that is not defined as async, or an async function within a route is called without await.",
+      "severity": "medium",
+      "category": "backend-integrity",
+      "categoryId": "BE",
+      "labels": ["Fragile", "Silent Failure"],
+      "pattern": "(add_task\\(|BackgroundTasks)",
+      "crossFileCheck": true,
+      "impact": "Background tasks may block the event loop or silently fail without proper async handling.",
+      "suggestedFix": "Ensure background task functions are async if they do I/O, and that async calls within routes use await."
+    }
+  ]
+}

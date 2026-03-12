@@ -1,0 +1,281 @@
+name: "FLAW — Code Integrity Audit"
+description: "Audit AI-generated code for broken flows, fake features, and security gaps"
+author: "resetroot99"
+
+branding:
+  icon: "shield"
+  color: "purple"
+
+inputs:
+  path:
+    description: "Directory to scan"
+    required: false
+    default: "."
+  threshold:
+    description: "Minimum passing score (0-100)"
+    required: false
+    default: "60"
+  fail-on-critical:
+    description: "Fail the check if critical findings exist"
+    required: false
+    default: "true"
+  report-format:
+    description: "Report format: terminal, json, html, markdown"
+    required: false
+    default: "terminal"
+  comment:
+    description: "Post PR comment with audit results"
+    required: false
+    default: "true"
+  baseline:
+    description: "Path to baseline file for differential scoring"
+    required: false
+    default: ".flaw-baseline.json"
+
+outputs:
+  score:
+    description: "Numeric audit score (0-100)"
+    value: ${{ steps.parse.outputs.score }}
+  rating:
+    description: "Text rating of project health"
+    value: ${{ steps.parse.outputs.rating }}
+  findings:
+    description: "Total number of findings"
+    value: ${{ steps.parse.outputs.findings }}
+  status:
+    description: "PASS or FAIL"
+    value: ${{ steps.parse.outputs.status }}
+  score-delta:
+    description: "Score change from baseline (positive = improvement)"
+    value: ${{ steps.diff.outputs.score_delta }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Set up Node.js 20
+      uses: actions/setup-node@v4
+      with:
+        node-version: "20"
+
+    - name: Install flaw-kit
+      shell: bash
+      run: npm install -g flaw-kit
+
+    - name: Run FLAW audit
+      id: audit
+      shell: bash
+      run: |
+        REPORT_FILE="${{ runner.temp }}/flaw-report.json"
+        npx flaw-kit ${{ inputs.path }} --json --quiet > "$REPORT_FILE" 2>/dev/null || true
+        echo "report_file=$REPORT_FILE" >> "$GITHUB_OUTPUT"
+
+    - name: Parse results
+      id: parse
+      shell: bash
+      run: |
+        node "${{ github.action_path }}/action-scripts/parse-results.js" \
+          "${{ steps.audit.outputs.report_file }}" \
+          "${{ inputs.threshold }}" \
+          "${{ inputs.fail-on-critical }}"
+
+    - name: Run baseline diff
+      id: diff
+      shell: bash
+      run: |
+        BASELINE="${{ inputs.baseline }}"
+        REPORT_FILE="${{ steps.audit.outputs.report_file }}"
+        DIFF_FILE="${{ runner.temp }}/flaw-diff.json"
+
+        if [ -f "$BASELINE" ]; then
+          # Run flaw with --diff to get comparison, also save updated baseline
+          npx flaw-kit ${{ inputs.path }} --diff "$BASELINE" --baseline "$BASELINE" --json --quiet > "$DIFF_FILE" 2>/dev/null || true
+
+          # Extract score delta from the baseline file and report
+          PREV_SCORE=$(node -e "
+            const fs = require('fs');
+            try {
+              const b = JSON.parse(fs.readFileSync('$BASELINE', 'utf-8'));
+              console.log(b.score || 0);
+            } catch { console.log(0); }
+          ")
+          CURR_SCORE=${{ steps.parse.outputs.score }}
+          DELTA=$((CURR_SCORE - PREV_SCORE))
+          echo "score_delta=$DELTA" >> "$GITHUB_OUTPUT"
+          echo "prev_score=$PREV_SCORE" >> "$GITHUB_OUTPUT"
+          echo "has_baseline=true" >> "$GITHUB_OUTPUT"
+
+          # Count new and fixed findings
+          NEW_COUNT=$(node -e "
+            const fs = require('fs');
+            try {
+              const baseline = JSON.parse(fs.readFileSync('$BASELINE', 'utf-8'));
+              const report = JSON.parse(fs.readFileSync('$REPORT_FILE', 'utf-8'));
+              const bKeys = new Set(baseline.findings.map(f => f.ruleId + '::' + f.file));
+              const cKeys = new Set(report.findings.filter(f => f.status === 'open').map(f => f.ruleId + '::' + f.location.file));
+              let newCount = 0;
+              for (const k of cKeys) { if (!bKeys.has(k)) newCount++; }
+              console.log(newCount);
+            } catch { console.log(0); }
+          ")
+          FIXED_COUNT=$(node -e "
+            const fs = require('fs');
+            try {
+              const baseline = JSON.parse(fs.readFileSync('$BASELINE', 'utf-8'));
+              const report = JSON.parse(fs.readFileSync('$REPORT_FILE', 'utf-8'));
+              const cKeys = new Set(report.findings.filter(f => f.status === 'open').map(f => f.ruleId + '::' + f.location.file));
+              let fixedCount = 0;
+              for (const f of baseline.findings) { if (!cKeys.has(f.ruleId + '::' + f.file)) fixedCount++; }
+              console.log(fixedCount);
+            } catch { console.log(0); }
+          ")
+          echo "new_count=$NEW_COUNT" >> "$GITHUB_OUTPUT"
+          echo "fixed_count=$FIXED_COUNT" >> "$GITHUB_OUTPUT"
+        else
+          echo "score_delta=0" >> "$GITHUB_OUTPUT"
+          echo "prev_score=0" >> "$GITHUB_OUTPUT"
+          echo "has_baseline=false" >> "$GITHUB_OUTPUT"
+          echo "new_count=0" >> "$GITHUB_OUTPUT"
+          echo "fixed_count=0" >> "$GITHUB_OUTPUT"
+          # Create initial baseline
+          npx flaw-kit ${{ inputs.path }} --baseline "$BASELINE" --quiet 2>/dev/null || true
+        fi
+
+    - name: Post PR comment
+      if: inputs.comment == 'true' && github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const score = parseInt('${{ steps.parse.outputs.score }}', 10);
+          const rating = '${{ steps.parse.outputs.rating }}';
+          const status = '${{ steps.parse.outputs.status }}';
+          const findings = parseInt('${{ steps.parse.outputs.findings }}', 10);
+          const criticalCount = parseInt('${{ steps.parse.outputs.critical_count }}', 10);
+          const highCount = parseInt('${{ steps.parse.outputs.high_count }}', 10);
+          const topFindings = JSON.parse('${{ steps.parse.outputs.top_findings }}');
+          const categories = JSON.parse('${{ steps.parse.outputs.categories }}');
+          const hasBaseline = '${{ steps.diff.outputs.has_baseline }}' === 'true';
+          const scoreDelta = parseInt('${{ steps.diff.outputs.score_delta }}', 10);
+          const prevScore = parseInt('${{ steps.diff.outputs.prev_score }}', 10);
+          const newCount = parseInt('${{ steps.diff.outputs.new_count }}', 10);
+          const fixedCount = parseInt('${{ steps.diff.outputs.fixed_count }}', 10);
+
+          // Visual score bar
+          const filled = Math.round(score / 5);
+          const empty = 20 - filled;
+          const bar = '█'.repeat(filled) + '░'.repeat(empty);
+
+          // Status emoji
+          const statusIcon = status === 'PASS' ? '✅' : '❌';
+          const scoreColor = score >= 80 ? '🟢' : score >= 60 ? '🟡' : score >= 40 ? '🟠' : '🔴';
+
+          // Format rating for display
+          const ratingDisplay = rating.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+
+          // Build top findings table
+          let findingsTable = '';
+          if (topFindings.length > 0) {
+            findingsTable = '### Top Findings\n\n';
+            findingsTable += '| Severity | Title | File |\n';
+            findingsTable += '|----------|-------|------|\n';
+            for (const f of topFindings) {
+              const sevIcon = f.severity === 'critical' ? '🔴' : f.severity === 'high' ? '🟠' : '🟡';
+              const file = f.file ? `\`${f.file}\`` : '—';
+              findingsTable += `| ${sevIcon} ${f.severity} | ${f.title} | ${file} |\n`;
+            }
+          }
+
+          // Build category breakdown
+          let categoryTable = '### Category Breakdown\n\n';
+          categoryTable += '| Category | Score | Status |\n';
+          categoryTable += '|----------|-------|--------|\n';
+          for (const c of categories) {
+            const catIcon = c.status === 'pass' ? '✅' : c.status === 'warning' ? '⚠️' : '❌';
+            categoryTable += `| ${c.name} | ${c.score}/${c.maxScore} | ${catIcon} |\n`;
+          }
+
+          // Build diff summary section
+          let diffSection = '';
+          if (hasBaseline) {
+            const deltaSign = scoreDelta > 0 ? '+' : scoreDelta < 0 ? '' : '±';
+            const deltaIcon = scoreDelta > 0 ? '📈' : scoreDelta < 0 ? '📉' : '➡️';
+            diffSection = [
+              '### Baseline Comparison',
+              '',
+              `${deltaIcon} **Score: ${prevScore} → ${score} (${deltaSign}${scoreDelta})**`,
+              '',
+              `| Metric | Count |`,
+              `|--------|-------|`,
+              `| Fixed | ${fixedCount} issue${fixedCount !== 1 ? 's' : ''} resolved |`,
+              `| New | ${newCount} issue${newCount !== 1 ? 's' : ''} introduced |`,
+              '',
+            ].join('\n');
+          }
+
+          const body = [
+            `## ${statusIcon} FLAW — Code Integrity Audit`,
+            '',
+            `${scoreColor} **Score: ${score}/100** \`${bar}\``,
+            '',
+            `| Metric | Value |`,
+            `|--------|-------|`,
+            `| **Rating** | ${ratingDisplay} |`,
+            `| **Status** | ${status} |`,
+            `| **Findings** | ${findings} total (${criticalCount} critical, ${highCount} high) |`,
+            `| **Threshold** | ${{ inputs.threshold }} |`,
+            '',
+            diffSection,
+            findingsTable,
+            categoryTable,
+            '',
+            '---',
+            '*Audited by [FLAW](https://github.com/resetroot99/FLAW) — Flow Logic Audit Watch*',
+          ].join('\n');
+
+          // Find and update existing comment or create new one
+          const { data: comments } = await github.rest.issues.listComments({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: context.issue.number,
+          });
+
+          const marker = '## ✅ FLAW — Code Integrity Audit';
+          const markerAlt = '## ❌ FLAW — Code Integrity Audit';
+          const existing = comments.find(c =>
+            c.body.startsWith(marker) || c.body.startsWith(markerAlt)
+          );
+
+          if (existing) {
+            await github.rest.issues.updateComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              comment_id: existing.id,
+              body,
+            });
+          } else {
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body,
+            });
+          }
+
+    - name: Check threshold
+      shell: bash
+      run: |
+        SCORE=${{ steps.parse.outputs.score }}
+        THRESHOLD=${{ inputs.threshold }}
+        CRITICAL=${{ steps.parse.outputs.critical_count }}
+        FAIL_ON_CRITICAL=${{ inputs.fail-on-critical }}
+
+        if [ "$SCORE" -lt "$THRESHOLD" ]; then
+          echo "::error::FLAW audit score ($SCORE) is below threshold ($THRESHOLD)"
+          exit 1
+        fi
+
+        if [ "$FAIL_ON_CRITICAL" = "true" ] && [ "$CRITICAL" -gt 0 ]; then
+          echo "::error::FLAW audit found $CRITICAL critical finding(s) with fail-on-critical enabled"
+          exit 1
+        fi
+
+        echo "::notice::FLAW audit passed with score $SCORE/$THRESHOLD"

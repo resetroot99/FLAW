@@ -1,0 +1,71 @@
+{
+  "framework": "nextjs",
+  "version": "1.0.0",
+  "rules": [
+    {
+      "id": "FK-NX-LINK-001",
+      "title": "Link references missing route",
+      "description": "A Next.js <Link> component references a route path that has no corresponding page.tsx or page.js file in the app directory. The link will lead to a 404.",
+      "severity": "high",
+      "category": "frontend-wiring",
+      "categoryId": "FW",
+      "labels": ["Broken", "Dead Control"],
+      "pattern": "<Link[^>]*href\\s*=\\s*['\"`](\\/[^'\"`{}]+)['\"`]",
+      "crossFileCheck": true,
+      "impact": "Users click a link that leads to a 404 page.",
+      "suggestedFix": "Create the missing page.tsx/page.js file for the referenced route, or fix the href to point to an existing route."
+    },
+    {
+      "id": "FK-NX-SERVER-001",
+      "title": "Server action missing 'use server' directive",
+      "description": "A function that appears to be a server action (uses cookies, headers, redirect, revalidatePath, or database calls) is defined without the 'use server' directive. Without it, the function runs on the client and will fail.",
+      "severity": "high",
+      "category": "backend-integrity",
+      "categoryId": "BE",
+      "labels": ["Broken", "Fake Flow"],
+      "pattern": "(cookies\\(\\)|headers\\(\\)|redirect\\(|revalidatePath\\(|revalidateTag\\(|prisma\\.|db\\.)",
+      "crossFileCheck": true,
+      "impact": "Server-only APIs called on client will throw runtime errors or silently fail.",
+      "suggestedFix": "Add 'use server' at the top of the file or at the beginning of the async function body."
+    },
+    {
+      "id": "FK-NX-CLIENT-001",
+      "title": "Client component imports server-only module",
+      "description": "A file marked with 'use client' imports a module that should only run on the server (fs, prisma, database, crypto for Node, server-only). This will cause a build error or runtime crash.",
+      "severity": "critical",
+      "category": "frontend-wiring",
+      "categoryId": "FW",
+      "labels": ["Broken", "Production-Blocking"],
+      "pattern": "'use client'",
+      "crossFileCheck": true,
+      "impact": "Build failure or runtime crash when client bundle tries to include server-only code.",
+      "suggestedFix": "Move server-only logic to a separate server component or API route. Use 'server-only' package to enforce boundaries."
+    },
+    {
+      "id": "FK-NX-MIDDLEWARE-001",
+      "title": "Middleware matcher may not cover protected routes",
+      "description": "The middleware.ts config.matcher pattern doesn't appear to cover routes that have authentication checks, meaning some protected pages may be accessible without middleware-level auth.",
+      "severity": "medium",
+      "category": "security-auth",
+      "categoryId": "SA",
+      "labels": ["Auth Gap", "Fragile"],
+      "pattern": "config\\s*=\\s*\\{[^}]*matcher",
+      "crossFileCheck": true,
+      "impact": "Protected routes may be accessible without middleware-level authentication or authorization.",
+      "suggestedFix": "Ensure middleware.config.matcher includes all routes that require authentication."
+    },
+    {
+      "id": "FK-NX-BOUNDARY-001",
+      "title": "Dynamic route missing loading or error boundary",
+      "description": "A dynamic route segment (e.g. [slug], [id]) has no loading.tsx or error.tsx sibling. Dynamic routes fetch data and are prone to loading states and errors that need graceful handling.",
+      "severity": "medium",
+      "category": "error-handling",
+      "categoryId": "EH",
+      "labels": ["Fragile", "Incomplete"],
+      "pattern": "\\[\\w+\\]",
+      "crossFileCheck": true,
+      "impact": "Users see raw loading flicker or unhandled error screens on dynamic pages.",
+      "suggestedFix": "Add loading.tsx and error.tsx files in the dynamic route directory."
+    }
+  ]
+}

@@ -1,0 +1,39 @@
+name: FLAW Audit
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  audit:
+    name: Code Integrity Audit
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run FLAW audit
+        id: flaw
+        uses: ./
+        with:
+          path: "."
+          threshold: "60"
+          fail-on-critical: "true"
+          report-format: "terminal"
+          comment: "true"
+
+      - name: Print results
+        if: always()
+        shell: bash
+        run: |
+          echo "Score:    ${{ steps.flaw.outputs.score }}"
+          echo "Rating:   ${{ steps.flaw.outputs.rating }}"
+          echo "Findings: ${{ steps.flaw.outputs.findings }}"
+          echo "Status:   ${{ steps.flaw.outputs.status }}"

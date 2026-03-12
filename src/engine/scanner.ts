@@ -12,7 +12,11 @@ import { analyzeMaintainability } from '../analyzers/maintainability.js';
 import { analyzeTesting } from '../analyzers/testing.js';
 import { analyzeDeployment } from '../analyzers/deployment.js';
 import { analyzeSmells } from '../analyzers/smells.js';
+import { analyzeSmellFingerprint } from '../analyzers/smell-fingerprint.js';
 import { analyzeWiring } from '../analyzers/wiring.js';
+import { analyzeCrossWiring } from '../analyzers/cross-wiring.js';
+import { analyzeFrameworks } from '../analyzers/frameworks.js';
+import { analyzeSpecReality } from '../analyzers/spec-reality.js';
 import { buildDepGraph, enrichFindingsWithDownstream } from './dep-graph.js';
 
 export interface ScanResult extends AnalyzerResult {
@@ -52,7 +56,11 @@ export async function scan(root: string): Promise<ScanResult> {
     analyzeTesting(ctx),
     analyzeDeployment(ctx),
     analyzeSmells(ctx),
+    analyzeSmellFingerprint(ctx),
     analyzeWiring(ctx),
+    analyzeCrossWiring(ctx),
+    analyzeFrameworks(ctx),
+    analyzeSpecReality(ctx),
   ];
 
   const merged = mergeResults(...results);

@@ -1,0 +1,116 @@
+{
+  "version": "1.0.0",
+  "updated": "2026-03-12",
+  "signatures": {
+    "cursor": {
+      "name": "Cursor",
+      "patterns": [
+        {
+          "id": "CURSOR-STUB-001",
+          "description": "TODO implement stub pattern",
+          "regex": "//\\s*TODO:?\\s*(implement|add|finish|complete)",
+          "fileTypes": ["ts", "tsx", "js", "jsx"],
+          "weight": 2,
+          "evidence": "Cursor tends to generate // TODO: implement stubs for complex logic"
+        },
+        {
+          "id": "CURSOR-UNUSED-HOOK-001",
+          "description": "Component imports React hooks but never calls them",
+          "regex": "import.*\\{[^}]*(useState|useEffect|useMemo|useCallback)[^}]*\\}.*from ['\"]react['\"]",
+          "crossCheck": "hook name imported but not called in file body",
+          "weight": 3,
+          "evidence": "Cursor creates components that import hooks but never use them"
+        },
+        {
+          "id": "CURSOR-MOCK-API-001",
+          "description": "API route returns hardcoded mock data array",
+          "regex": "res\\.(json|send)\\(\\s*\\[\\s*\\{",
+          "filePattern": "api/|routes/|handlers/",
+          "weight": 3,
+          "evidence": "Cursor often generates API routes that return hardcoded mock data"
+        }
+      ]
+    },
+    "copilot": {
+      "name": "GitHub Copilot",
+      "patterns": [
+        {
+          "id": "COPILOT-EMPTY-BODY-001",
+          "description": "Function with signature but empty/pass/null body",
+          "regex": "(function\\s+\\w+\\([^)]*\\)\\s*\\{\\s*(return\\s+null|return|)\\s*\\}|def\\s+\\w+\\([^)]*\\):\\s*\\n\\s+pass)",
+          "weight": 2,
+          "evidence": "Copilot completes function signatures but leaves bodies as pass or return null"
+        },
+        {
+          "id": "COPILOT-HAPPY-PATH-001",
+          "description": "Test file only has positive/happy path assertions",
+          "regex": "\\.(test|spec)\\.(ts|js|tsx|jsx)$",
+          "crossCheck": "test file has no error/failure/reject/throw test cases",
+          "weight": 2,
+          "evidence": "Copilot generates test files that only test the happy path"
+        },
+        {
+          "id": "COPILOT-OVER-IMPORT-001",
+          "description": "Many imports at top with some unused",
+          "crossCheck": "import count > 8 and some imported names not found in file body",
+          "weight": 1,
+          "evidence": "Copilot tends to over-import modules"
+        }
+      ]
+    },
+    "claude": {
+      "name": "Claude",
+      "patterns": [
+        {
+          "id": "CLAUDE-PHANTOM-UTIL-001",
+          "description": "References utility function that doesn't exist in codebase",
+          "regex": "import.*from ['\"](\\.\\./|\\./).*utils/|helpers/|lib/",
+          "crossCheck": "imported file doesn't exist",
+          "weight": 3,
+          "evidence": "Claude generates complete-looking code that references nonexistent utility functions"
+        },
+        {
+          "id": "CLAUDE-FAKE-CONFIG-001",
+          "description": "Config with realistic-looking but placeholder values",
+          "regex": "(https?://api\\.|https?://.*\\.example\\.com|sk_live_[a-zA-Z0-9]{20,}|your-.*-here|REPLACE_ME)",
+          "weight": 2,
+          "evidence": "Claude creates config files with placeholder values that look real"
+        },
+        {
+          "id": "CLAUDE-COMPLETE-FACADE-001",
+          "description": "Well-structured file with imports/exports but thin implementation",
+          "crossCheck": "file has more import/export lines than logic lines",
+          "weight": 2,
+          "evidence": "Claude generates complete-looking facades with minimal actual logic"
+        }
+      ]
+    },
+    "gpt": {
+      "name": "ChatGPT / GPT-4",
+      "patterns": [
+        {
+          "id": "GPT-HARDCODE-001",
+          "description": "Hardcoded values instead of environment variables",
+          "regex": "(PORT\\s*=\\s*\\d{4}|host\\s*[:=]\\s*['\"]localhost['\"]|mongodb://localhost|redis://localhost)",
+          "weight": 2,
+          "evidence": "GPT generates working code with hardcoded values instead of environment variables"
+        },
+        {
+          "id": "GPT-SKIP-VERIFY-001",
+          "description": "Auth flow that skips token validation",
+          "regex": "(jwt\\.decode|token\\s*=\\s*req\\.(headers|cookies))",
+          "crossCheck": "jwt.decode without jwt.verify in same file",
+          "weight": 3,
+          "evidence": "GPT creates auth flows that skip token validation"
+        },
+        {
+          "id": "GPT-CONSOLE-AUTH-001",
+          "description": "Console.log of sensitive auth data",
+          "regex": "console\\.log\\(.*?(token|password|secret|key|auth|credential)",
+          "weight": 2,
+          "evidence": "GPT generates debugging console.logs that leak auth data"
+        }
+      ]
+    }
+  }
+}

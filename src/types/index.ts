@@ -70,6 +70,12 @@ export interface Gate {
   reason?: string;
 }
 
+export interface FingerprintHit {
+  tool: string;
+  confidence: number;
+  hits: number;
+}
+
 export interface AuditSummary {
   totalScore: number;
   maxScore: number;
@@ -82,6 +88,7 @@ export interface AuditSummary {
   topRisks: string[];
   recommendation: string;
   launchBlockers: string[];
+  fingerprint?: FingerprintHit[];
 }
 
 export interface AuditReport {
