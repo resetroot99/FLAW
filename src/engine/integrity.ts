@@ -4,7 +4,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const REQUIRED_STRINGS = ['resetroot99', 'ajakvani', 'BSL'];
+const REQUIRED_STRINGS = ['resetroot99', 'ajakvani', 'Business Source License'];
 
 /**
  * Verifies the LICENSE.txt file has not been stripped or replaced.
@@ -12,17 +12,28 @@ const REQUIRED_STRINGS = ['resetroot99', 'ajakvani', 'BSL'];
  */
 export function checkIntegrity(): void {
   try {
-    // Walk up from dist/ or src/ to find project root
+    // Walk up from dist/ or src/ to find the project root (has package.json with name "flaw-kit")
     const self = typeof __filename !== 'undefined'
       ? __filename
       : fileURLToPath(import.meta.url);
     let dir = dirname(self);
     let licensePath = '';
     for (let i = 0; i < 5; i++) {
-      const candidate = resolve(dir, 'LICENSE.txt');
-      if (existsSync(candidate)) {
-        licensePath = candidate;
-        break;
+      // Skip node_modules — we want the actual project root
+      if (!dir.includes('node_modules')) {
+        const pkgPath = resolve(dir, 'package.json');
+        if (existsSync(pkgPath)) {
+          try {
+            const pkg = JSON.parse(readFileSync(pkgPath, 'utf-8'));
+            if (pkg.name === 'flaw-kit') {
+              const candidate = resolve(dir, 'LICENSE.txt');
+              if (existsSync(candidate)) {
+                licensePath = candidate;
+                break;
+              }
+            }
+          } catch {}
+        }
       }
       dir = resolve(dir, '..');
     }
