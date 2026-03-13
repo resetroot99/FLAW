@@ -1,3 +1,4 @@
+// © 2026 resetroot99 & ajakvani — FLAW (Flow Logic Audit Watch) — BSL 1.1
 /**
  * Maps FLAW findings to real user-facing symptoms.
  * "This is why you're experiencing X..."

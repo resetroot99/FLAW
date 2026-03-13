@@ -1,3 +1,4 @@
+// © 2026 resetroot99 & ajakvani — FLAW (Flow Logic Audit Watch) — BSL 1.1
 import { readFileSync, existsSync, statSync } from 'node:fs';
 import { join, relative, extname } from 'node:path';
 import { glob } from 'glob';

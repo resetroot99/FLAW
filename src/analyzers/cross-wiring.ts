@@ -1,3 +1,4 @@
+// © 2026 resetroot99 & ajakvani — FLAW (Flow Logic Audit Watch) — BSL 1.1
 // FLAW — Cross-file wiring verification
 // Catches broken imports, phantom exports, missing route handlers, and undefined event handlers
 // across file boundaries using enhanced regex (no AST, no native deps)

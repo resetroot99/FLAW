@@ -1,3 +1,4 @@
+// © 2026 resetroot99 & ajakvani — FLAW (Flow Logic Audit Watch) — BSL 1.1
 import { execSync } from 'node:child_process';
 
 export function getGitBranch(root: string): string | undefined {

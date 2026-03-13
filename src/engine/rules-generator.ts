@@ -1,3 +1,4 @@
+// © 2026 resetroot99 & ajakvani — FLAW (Flow Logic Audit Watch) — BSL 1.1
 /**
  * Agent Rules File Generator
  * Creates .cursorrules / agent rules files with project-specific coding standards

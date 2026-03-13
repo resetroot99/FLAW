@@ -1,3 +1,4 @@
+// © 2026 resetroot99 & ajakvani — FLAW (Flow Logic Audit Watch) — BSL 1.1
 /**
  * FLAW Interactive REPL
  * Launch with `flaw` (no args) or `flaw --interactive`

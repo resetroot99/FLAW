@@ -1,3 +1,4 @@
+// © 2026 resetroot99 & ajakvani — FLAW (Flow Logic Audit Watch) — BSL 1.1
 // Priority triage — "Fix these 3 things first"
 import type { Finding, CategoryScore, TriageGroup, TriageResult } from '../types/index.js';
 

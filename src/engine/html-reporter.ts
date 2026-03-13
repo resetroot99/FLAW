@@ -1,3 +1,4 @@
+// © 2026 resetroot99 & ajakvani — FLAW (Flow Logic Audit Watch) — BSL 1.1
 import type { AuditReport, Finding, CategoryScore, SmellIndex, Gate, TriageResult, AnalyzerContext } from '../types/index.js';
 import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -1179,6 +1180,11 @@ export function exportHtml(report: AuditReport, outputDir: string, triage?: Tria
       else if (e.key === 'k') { visibleIdx = Math.max(visibleIdx - 1, 0); selectForensicItem(parseInt(items[visibleIdx].dataset.idx)); }
     });
   </script>
+  <footer style="text-align:center;padding:24px 0 16px;font-size:11px;color:#6b7280;border-top:1px solid var(--border);margin-top:32px;">
+    © 2026 resetroot99 &amp; ajakvani —
+    <a href="https://github.com/resetroot99/FLAW" style="color:#818cf8;text-decoration:none;">FLAW</a>
+    — Licensed under BSL 1.1. Commercial use requires a license.
+  </footer>
 </body>
 </html>`;
 

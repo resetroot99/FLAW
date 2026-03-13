@@ -1,3 +1,4 @@
+// © 2026 resetroot99 & ajakvani — FLAW (Flow Logic Audit Watch) — BSL 1.1
 /**
  * Beginner-friendly explanations for every FLAW rule.
  * Written in plain English for developers who may not know the jargon.

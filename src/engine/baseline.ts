@@ -1,3 +1,4 @@
+// © 2026 resetroot99 & ajakvani — FLAW (Flow Logic Audit Watch) — BSL 1.1
 import type { AuditReport, Finding, Severity, CategoryScore } from '../types/index.js';
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 

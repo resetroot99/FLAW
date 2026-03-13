@@ -1,3 +1,4 @@
+// © 2026 resetroot99 & ajakvani — FLAW (Flow Logic Audit Watch) — BSL 1.1
 // Shared ANSI color constants
 export const c = {
   reset: '\x1b[0m',

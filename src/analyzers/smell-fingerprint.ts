@@ -1,3 +1,4 @@
+// © 2026 resetroot99 & ajakvani — FLAW (Flow Logic Audit Watch) — BSL 1.1
 import type { AnalyzerContext, AnalyzerResult, FingerprintHit } from '../types/index.js';
 import { makeSmell, emptyResult } from './base.js';
 import { isSourceFile, isTestFile } from '../utils/fs.js';

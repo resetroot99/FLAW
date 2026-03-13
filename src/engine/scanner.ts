@@ -1,3 +1,4 @@
+// © 2026 resetroot99 & ajakvani — FLAW (Flow Logic Audit Watch) — BSL 1.1
 import type { AnalyzerContext, AnalyzerResult } from '../types/index.js';
 import { collectFiles, loadFileContents, findPackageJson, detectFramework } from '../utils/fs.js';
 import { resetFindingCounter, mergeResults } from '../analyzers/base.js';

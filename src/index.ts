@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// © 2026 resetroot99 & ajakvani — FLAW (Flow Logic Audit Watch) — BSL 1.1
 
 import { resolve, basename } from 'node:path';
 import { existsSync } from 'node:fs';
@@ -22,6 +23,7 @@ import { startRepl } from './engine/repl.js';
 import { exportBadge } from './engine/badge.js';
 import { runPreCommit, formatPreCommitLine } from './engine/pre-commit.js';
 import { getTelemetryConfig, telemetryConfigExists, promptTelemetryConsent, saveTelemetryChoice, sendTelemetry } from './engine/telemetry.js';
+import { checkIntegrity } from './engine/integrity.js';
 import type { AuditReport } from './types/index.js';
 
 function printUsage(): void {
@@ -73,6 +75,7 @@ function printUsage(): void {
 }
 
 async function main(): Promise<void> {
+  checkIntegrity();
   const args = process.argv.slice(2);
 
   if (args.includes('--help') || args.includes('-h')) {

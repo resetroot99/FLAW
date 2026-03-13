@@ -1,3 +1,4 @@
+// © 2026 resetroot99 & ajakvani — FLAW (Flow Logic Audit Watch) — BSL 1.1
 import { resolve, extname, relative, isAbsolute } from 'node:path';
 import { existsSync } from 'node:fs';
 import { resetFindingCounter, mergeResults } from '../analyzers/base.js';

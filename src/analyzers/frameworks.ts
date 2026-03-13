@@ -1,3 +1,4 @@
+// © 2026 resetroot99 & ajakvani — FLAW (Flow Logic Audit Watch) — BSL 1.1
 import type { AnalyzerContext, AnalyzerResult, Severity, Confidence, Label } from '../types/index.js';
 import { makeFinding, makeSmell, emptyResult, mergeResults } from './base.js';
 import { searchFiles, filesMatching, extractSnippet } from '../utils/patterns.js';

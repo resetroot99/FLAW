@@ -1,3 +1,4 @@
+// © 2026 resetroot99 & ajakvani — FLAW (Flow Logic Audit Watch) — BSL 1.1
 // FLAW — Cross-boundary wiring verification
 // Catches the #1 AI-generated failure: code that looks connected but isn't
 

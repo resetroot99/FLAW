@@ -1,3 +1,4 @@
+// © 2026 resetroot99 & ajakvani — FLAW (Flow Logic Audit Watch) — BSL 1.1
 // FLAW — Opt-in Anonymous Telemetry
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';

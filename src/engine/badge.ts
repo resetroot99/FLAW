@@ -1,3 +1,4 @@
+// © 2026 resetroot99 & ajakvani — FLAW (Flow Logic Audit Watch) — BSL 1.1
 // FLAW — SVG Score Badge Generator (shields.io style)
 
 import { writeFileSync } from 'node:fs';

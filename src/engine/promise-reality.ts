@@ -1,3 +1,4 @@
+// © 2026 resetroot99 & ajakvani — FLAW (Flow Logic Audit Watch) — BSL 1.1
 /**
  * Promise vs Reality Analysis
  * Compares what the README/docs claim vs what the code actually implements.

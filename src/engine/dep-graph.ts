@@ -1,3 +1,4 @@
+// © 2026 resetroot99 & ajakvani — FLAW (Flow Logic Audit Watch) — BSL 1.1
 // Dependency chain analysis — show downstream impact of broken files
 import type { AnalyzerContext, Finding } from '../types/index.js';
 

@@ -1,3 +1,4 @@
+// © 2026 resetroot99 & ajakvani — FLAW (Flow Logic Audit Watch) — BSL 1.1
 // Fix-ready output — generates flaw-fixes.md with actionable patches
 import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';

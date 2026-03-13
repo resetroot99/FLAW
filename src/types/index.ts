@@ -1,3 +1,4 @@
+// © 2026 resetroot99 & ajakvani — FLAW (Flow Logic Audit Watch) — BSL 1.1
 // FAIL Kit v2 — Core Types
 
 export type Severity = 'critical' | 'high' | 'medium' | 'low' | 'info';

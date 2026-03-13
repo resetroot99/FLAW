@@ -1,3 +1,4 @@
+// © 2026 resetroot99 & ajakvani — FLAW (Flow Logic Audit Watch) — BSL 1.1
 // AI-prompt output — generates a structured prompt for AI coding tools
 import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';

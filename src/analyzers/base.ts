@@ -1,3 +1,4 @@
+// © 2026 resetroot99 & ajakvani — FLAW (Flow Logic Audit Watch) — BSL 1.1
 import type { AnalyzerContext, AnalyzerResult, Finding, SmellHit, Severity, Confidence, Label, Location } from '../types/index.js';
 
 let findingCounter = 0;
