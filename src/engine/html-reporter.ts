@@ -2,7 +2,8 @@
 import type { AuditReport, Finding, CategoryScore, SmellIndex, Gate, TriageResult, AnalyzerContext } from '../types/index.js';
 import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { generatePrompt } from './prompt-reporter.js';
+import { generatePrompt, PROMPT_STRATEGIES } from './prompt-reporter.js';
+import type { PromptStrategy } from './prompt-reporter.js';
 import { getExplanation, getFindingPrompt } from './explain.js';
 import { diagnoseSymptoms } from './symptoms.js';
 import { generateRoadmap } from './roadmap.js';
@@ -1065,8 +1066,11 @@ export function exportHtml(report: AuditReport, outputDir: string, triage?: Tria
         <h3>AI-Ready Prompt</h3>
         <button class="btn btn-ghost" onclick="closePromptModal()">&times; Close</button>
       </div>
+      <div style="padding: 12px 20px 0; display: flex; gap: 6px; flex-wrap: wrap; border-bottom: 1px solid var(--border);">
+        ${PROMPT_STRATEGIES.map((s, i) => `<button class="btn ${i === 0 ? 'btn-primary' : 'btn-ghost'}" style="font-size:11px;padding:6px 12px;" onclick="switchPromptStrategy('${s.id}', this)" title="${escapeHtml(s.description)}">${escapeHtml(s.label)}</button>`).join('\n        ')}
+      </div>
       <div class="prompt-modal-body">
-        <pre id="promptContent">${escapeHtml(triage ? generatePrompt(report, triage) : '')}</pre>
+        <pre id="promptContent">${escapeHtml(triage ? generatePrompt(report, triage, 'fix') : '')}</pre>
       </div>
       <div class="prompt-modal-footer">
         <span class="copy-success" id="copySuccess">&#10003; Copied!</span>
@@ -1078,7 +1082,20 @@ export function exportHtml(report: AuditReport, outputDir: string, triage?: Tria
 
   <script>
     const reportData = ${JSON.stringify(report)};
+    const promptData = ${JSON.stringify(
+      triage
+        ? Object.fromEntries(PROMPT_STRATEGIES.map(s => [s.id, generatePrompt(report, triage, s.id)]))
+        : {}
+    )};
     let selectedIdx = null;
+
+    function switchPromptStrategy(strategy, btn) {
+      // Update active button
+      btn.parentElement.querySelectorAll('.btn').forEach(b => { b.className = 'btn btn-ghost'; b.style.fontSize = '11px'; b.style.padding = '6px 12px'; });
+      btn.className = 'btn btn-primary'; btn.style.fontSize = '11px'; btn.style.padding = '6px 12px';
+      // Update prompt content
+      document.getElementById('promptContent').textContent = promptData[strategy] || '';
+    }
 
     function selectForensicItem(idx) {
       document.querySelectorAll('.forensic-item').forEach(el => el.classList.remove('selected'));
