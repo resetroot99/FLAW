@@ -521,7 +521,7 @@ export function analyzeWiring(ctx: AnalyzerContext): AnalyzerResult {
         let match;
         while ((match = pattern.exec(lines[i])) !== null) {
           const varName = match[1];
-          if (/^(NODE_ENV|PORT|HOST|PWD|HOME|PATH|CI|DEBUG|TZ)$/.test(varName)) continue;
+          if (/^(NODE_ENV|PORT|HOST|PWD|HOME|PATH|CI|DEBUG|TZ|ENVIRONMENT|ENV|LOG_LEVEL|LANG|USER|SHELL|TERM|HOSTNAME)$/.test(varName)) continue;
           const refs = envVarsUsed.get(varName) || [];
           refs.push({ file, line: i + 1 });
           envVarsUsed.set(varName, refs);
@@ -547,7 +547,7 @@ export function analyzeWiring(ctx: AnalyzerContext): AnalyzerResult {
     const varMatch = hit.match.match(/["'](\w+)["']/);
     if (varMatch) {
       const varName = varMatch[1];
-      if (!/^(NODE_ENV|PORT|HOST|PWD|HOME|PATH|CI|DEBUG|TZ)$/.test(varName)) {
+      if (!/^(NODE_ENV|PORT|HOST|PWD|HOME|PATH|CI|DEBUG|TZ|ENVIRONMENT|ENV|LOG_LEVEL|LANG|USER|SHELL|TERM|HOSTNAME)$/.test(varName)) {
         const refs = envVarsUsed.get(varName) || [];
         refs.push({ file: hit.file, line: hit.line });
         envVarsUsed.set(varName, refs);

@@ -605,9 +605,41 @@ function checkEnvVars(ctx: AnalyzerContext, result: AnalyzerResult): void {
     }
   }
 
+  // Detect Pydantic BaseSettings classes — fields auto-map to env vars by name
+  for (const [file, content] of ctx.fileContents) {
+    if (isTestFile(file)) continue;
+    if (/BaseSettings/.test(content)) {
+      // Extract field names from the Settings class (snake_case → UPPER_CASE auto-maps)
+      const fieldMatches = content.matchAll(/^\s+(\w+)\s*[:=]/gm);
+      for (const m of fieldMatches) {
+        const fieldName = m[1];
+        // Pydantic maps field_name → FIELD_NAME env var
+        referencedVars.add(fieldName.toUpperCase());
+        // Also add the original case (some use exact match)
+        referencedVars.add(fieldName);
+      }
+    }
+
+    // Also detect Django settings.py style: getattr(settings, 'VAR') or settings.VAR
+    const settingsRefs = content.matchAll(/settings\.([A-Z_][A-Z0-9_]*)/g);
+    for (const m of settingsRefs) {
+      referencedVars.add(m[1]);
+    }
+
+    // Detect docker-compose.yml or Dockerfile env references
+    if (/docker-compose|Dockerfile/i.test(file)) {
+      const dockerEnvMatches = content.matchAll(/\$\{?([A-Z_][A-Z0-9_]*)\}?/g);
+      for (const m of dockerEnvMatches) {
+        referencedVars.add(m[1]);
+      }
+    }
+  }
+
   // Flag env vars defined in .env.example but never referenced in code
+  // Skip infrastructure/runtime env vars consumed by Docker, OS, or the runtime — not application code
+  const infrastructureVars = /^(ENVIRONMENT|NODE_ENV|ENV|DEBUG|LOG_LEVEL|TZ|LANG|PATH|HOME|PWD|USER|SHELL|TERM|HOSTNAME|CI|PORT|HOST)$/;
   for (const varName of envVars) {
-    if (!referencedVars.has(varName)) {
+    if (!referencedVars.has(varName) && !infrastructureVars.test(varName)) {
       result.findings.push(makeFinding({
         ruleId: 'FK-SR-ENV-001',
         title: `Env var '${varName}' defined but never used`,

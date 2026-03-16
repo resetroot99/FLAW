@@ -92,6 +92,17 @@ export function analyzeValidation(ctx: AnalyzerContext): AnalyzerResult {
       }
 
       if (unboundedFields.length > 0) {
+        // Check if the class has a @field_validator or @validator that may constrain fields
+        let hasClassValidator = false;
+        for (let j = i + 1; j < Math.min(i + 50, lines.length); j++) {
+          if (/^\s*(?:class )\w/.test(lines[j]) && j > i + 1) break;
+          if (/^\s*@(?:field_validator|validator)\b/.test(lines[j])) {
+            hasClassValidator = true;
+            break;
+          }
+        }
+        if (hasClassValidator) continue;
+
         result.findings.push(makeFinding({
           ruleId: 'FK-VB-UNBOUNDED-001',
           title: `${className} has ${unboundedFields.length} unbounded input field(s)`,

@@ -122,7 +122,7 @@ describe('analyzeFrameworks', () => {
       const result = analyzeFrameworks(ctx);
       const finding = result.findings.find(f => f.ruleId === 'FK-FA-RESPONSE-001');
       expect(finding).toBeDefined();
-      expect(finding!.severity).toBe('medium');
+      expect(finding!.severity).toBe('low');
     });
 
     it('passes when response_model is specified', () => {

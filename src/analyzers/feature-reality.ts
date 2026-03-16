@@ -131,5 +131,88 @@ export function analyzeFeatureReality(ctx: AnalyzerContext): AnalyzerResult {
     }));
   }
 
+  // FK-FR-SEED-001: Seed data auto-loads in production path
+  const seedFuncDefRegex = /\b(def|function|const|async function)\s+(seed_\w+|populate_\w+|load_fixtures|create_demo|init_data|load_sample|load_demo)\b/;
+  const seedFuncNameRegex = /\b(seed_\w+|populate_\w+|load_fixtures|create_demo|init_data|load_sample|load_demo)\b/g;
+  const startupPatterns = /\b(lifespan|on_event\s*\(\s*['"`]startup|on_startup|app\.listen|app\.on\s*\(\s*['"`]ready)/;
+
+  // Collect seed/demo function names from definitions
+  const seedFuncDefs = searchFiles(ctx.fileContents, seedFuncDefRegex, prodFilter);
+  const seedFuncNames = new Set(seedFuncDefs.map(h => {
+    const m = h.context.match(/\b(seed_\w+|populate_\w+|load_fixtures|create_demo|init_data|load_sample|load_demo)\b/);
+    return m ? m[0] : '';
+  }).filter(Boolean));
+
+  // Find files with startup hooks
+  const startupFiles = filesMatching(ctx.fileContents, startupPatterns, prodFilter);
+
+  for (const file of startupFiles) {
+    const content = ctx.fileContents.get(file);
+    if (!content) continue;
+    const lines = content.split('\n');
+
+    for (let i = 0; i < lines.length; i++) {
+      const lineMatches = lines[i].match(seedFuncNameRegex);
+      if (!lineMatches) continue;
+
+      for (const funcName of lineMatches) {
+        if (!seedFuncNames.has(funcName)) continue;
+        result.findings.push(makeFinding({
+          ruleId: 'FK-FR-SEED-001',
+          title: 'Seed data auto-loads in production path',
+          categoryId: 'FR',
+          severity: 'critical',
+          confidence: 'medium',
+          labels: ['Misleading', 'Production-Blocking'],
+          summary: `Seed/demo function "${funcName}" is called from a startup hook in ${file}:${i + 1}.`,
+          impact: 'Demo/seed data loads automatically on every app startup in production.',
+          location: { file, startLine: i + 1 },
+          codeSnippet: extractSnippet(ctx.fileContents, file, i + 1, 3, 2),
+          suggestedFix: 'Guard seed calls with an environment check (e.g., if NODE_ENV !== "production") or require explicit invocation.',
+        }));
+        result.smellHits.push(makeSmell('SMELL-SEED-AUTOLOAD', 'Demo data auto-loads in production', 1));
+      }
+    }
+  }
+
+  // Also check for seed functions called at module scope (no startup hook, but no guard either)
+  for (const def of seedFuncDefs) {
+    const content = ctx.fileContents.get(def.file);
+    if (!content) continue;
+    const lines = content.split('\n');
+    const funcName = def.context.match(/\b(seed_\w+|populate_\w+|load_fixtures|create_demo|init_data|load_sample|load_demo)\b/);
+    if (!funcName) continue;
+
+    // Look for bare calls at module scope (not inside a function or class body, no if __name__ guard)
+    const hasMainGuard = /if\s+__name__\s*==\s*['"`]__main__['"`]|if\s*\(\s*require\.main\s*===\s*module\s*\)/.test(content);
+    if (hasMainGuard) continue;
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      // Skip the definition line itself, comments, and indented lines (inside functions)
+      if (i + 1 === def.line) continue;
+      if (/^\s*(#|\/\/)/.test(line)) continue;
+
+      // Module-scope call: starts at column 0 (no indentation) and calls the function
+      const callPattern = new RegExp(`^${funcName[0]}\\s*\\(`);
+      if (callPattern.test(line)) {
+        result.findings.push(makeFinding({
+          ruleId: 'FK-FR-SEED-001',
+          title: 'Seed data auto-loads in production path',
+          categoryId: 'FR',
+          severity: 'critical',
+          confidence: 'medium',
+          labels: ['Misleading', 'Production-Blocking'],
+          summary: `Seed/demo function "${funcName[0]}" is called at module scope in ${def.file}:${i + 1} without an environment guard.`,
+          impact: 'Demo/seed data loads automatically on every app startup in production.',
+          location: { file: def.file, startLine: i + 1 },
+          codeSnippet: extractSnippet(ctx.fileContents, def.file, i + 1, 2, 2),
+          suggestedFix: 'Wrap in if __name__ == "__main__" or an environment check.',
+        }));
+        result.smellHits.push(makeSmell('SMELL-SEED-AUTOLOAD', 'Demo data auto-loads in production', 1));
+      }
+    }
+  }
+
   return result;
 }

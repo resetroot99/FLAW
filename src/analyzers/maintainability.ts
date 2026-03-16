@@ -14,11 +14,12 @@ export function analyzeMaintainability(ctx: AnalyzerContext): AnalyzerResult {
     if (!srcFilter(file)) continue;
     const lineCount = content.split('\n').length;
     if (lineCount > 500) {
+      const severity = lineCount > 2000 ? 'critical' : lineCount > 1000 ? 'high' : lineCount > 500 ? 'medium' : 'low';
       result.findings.push(makeFinding({
         ruleId: 'FK-MH-SIZE-001',
         title: `File has ${lineCount} lines`,
         categoryId: 'MH',
-        severity: lineCount > 1000 ? 'high' : 'medium',
+        severity: severity as 'low' | 'medium' | 'high' | 'critical',
         confidence: 'high',
         labels: ['Fragile'],
         summary: `${file} is ${lineCount} lines — hard to navigate and maintain.`,

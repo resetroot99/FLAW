@@ -18,6 +18,8 @@ import { analyzeWiring } from '../analyzers/wiring.js';
 import { analyzeCrossWiring } from '../analyzers/cross-wiring.js';
 import { analyzeFrameworks } from '../analyzers/frameworks.js';
 import { analyzeSpecReality } from '../analyzers/spec-reality.js';
+import { analyzeIntegrationFlow } from '../analyzers/integration-flow.js';
+import { analyzeHealthSurface } from '../analyzers/health-surface.js';
 import { buildDepGraph, enrichFindingsWithDownstream } from './dep-graph.js';
 
 export interface ScanResult extends AnalyzerResult {
@@ -62,6 +64,8 @@ export async function scan(root: string): Promise<ScanResult> {
     analyzeCrossWiring(ctx),
     analyzeFrameworks(ctx),
     analyzeSpecReality(ctx),
+    analyzeIntegrationFlow(ctx),
+    analyzeHealthSurface(ctx),
   ];
 
   const merged = mergeResults(...results);

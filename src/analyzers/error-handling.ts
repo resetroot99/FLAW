@@ -215,19 +215,40 @@ export function analyzeErrorHandling(ctx: AnalyzerContext): AnalyzerResult {
       if (bodyLines.length === 1 && /^return\s+(None|\[\]|\{\})$/.test(bodyLines[0])) {
         // Only flag if the function name suggests it should return real data
         if (/^(get_|fetch_|load_|find_|search_|list_|retrieve_|compute_|calculate_|generate_|build_|create_)/.test(funcName)) {
-          result.findings.push(makeFinding({
-            ruleId: 'FK-FR-STUB-001',
-            title: `Function "${funcName}" always returns empty/None`,
-            categoryId: 'FR',
-            severity: 'medium',
-            confidence: 'medium',
-            labels: ['Incomplete', 'Fake Flow'],
-            summary: `${file}:${i + 1} defines "${funcName}" but always returns ${bodyLines[0].replace('return ', '')}.`,
-            impact: 'Callers receive empty data — feature appears broken.',
-            location: { file, startLine: i + 1 },
-            codeSnippet: extractSnippet(ctx.fileContents, file, i + 1, 0, 4),
-            suggestedFix: `Implement real logic in "${funcName}" or remove it.`,
-          }));
+          // Skip if the function has a docstring (intentional empty return, by design)
+          let hasDocstring = false;
+          for (let j = i + 1; j < Math.min(i + 5, lines.length); j++) {
+            const dl = lines[j].trim();
+            if (dl.startsWith('"""') || dl.startsWith("'''")) { hasDocstring = true; break; }
+            if (dl !== '' && !dl.startsWith('#')) break;
+          }
+
+          // Skip if another method in the same file handles the same concern
+          // e.g., get_relationships returns [] but extract_relationships_from_record does the work
+          const concern = funcName.replace(/^(get_|fetch_|load_|find_|search_|list_|retrieve_|compute_|calculate_|generate_|build_|create_)/, '');
+          let hasAlternateHandler = false;
+          if (concern) {
+            const concernRegex = new RegExp(`def\\s+\\w*${concern}\\w*\\s*\\(`, 'i');
+            const otherMatches = content.match(new RegExp(concernRegex.source, 'gi')) || [];
+            // If there are other functions in the same file dealing with the same concern, skip
+            hasAlternateHandler = otherMatches.length > 1;
+          }
+
+          if (!hasDocstring && !hasAlternateHandler) {
+            result.findings.push(makeFinding({
+              ruleId: 'FK-FR-STUB-001',
+              title: `Function "${funcName}" always returns empty/None`,
+              categoryId: 'FR',
+              severity: 'medium',
+              confidence: 'medium',
+              labels: ['Incomplete', 'Fake Flow'],
+              summary: `${file}:${i + 1} defines "${funcName}" but always returns ${bodyLines[0].replace('return ', '')}.`,
+              impact: 'Callers receive empty data — feature appears broken.',
+              location: { file, startLine: i + 1 },
+              codeSnippet: extractSnippet(ctx.fileContents, file, i + 1, 0, 4),
+              suggestedFix: `Implement real logic in "${funcName}" or remove it.`,
+            }));
+          }
         }
       }
     }
@@ -268,7 +289,11 @@ export function analyzeErrorHandling(ctx: AnalyzerContext): AnalyzerResult {
         // Skip underscore-prefixed params — convention for intentionally unused (e.g., auth guards)
         if (/^_/.test(param)) continue;
         const usageRegex = new RegExp(`\\b${param}\\b`);
-        if (!usageRegex.test(body)) {
+        // Check if param is used in function body directly
+        const isUsedDirectly = usageRegex.test(body);
+        // Check if param is passed to async task dispatchers (Celery .delay(), .apply_async(), .send(), .submit())
+        const isUsedInTaskDispatch = new RegExp(`\\.(?:delay|apply_async|send|submit|send_task|apply)\\s*\\([^)]*\\b${param}\\b`).test(body);
+        if (!isUsedDirectly && !isUsedInTaskDispatch) {
           result.findings.push(makeFinding({
             ruleId: 'FK-BE-UNUSED-001',
             title: `Route param "${param}" injected via Depends() but never used`,
@@ -288,10 +313,13 @@ export function analyzeErrorHandling(ctx: AnalyzerContext): AnalyzerResult {
   }
 
   // ── Fallback values (JS/TS) ──
+  // Skip JSX/TSX component files — fallback patterns like || 'N/A', ?? 0, ?? [], ?? {} are standard
+  // React defensive rendering and should not be flagged.
+  const fallbackFilter = (f: string) => srcFilter(f) && !/\.(tsx|jsx)$/.test(f);
   const fallbackHits = searchFiles(
     ctx.fileContents,
     /\?\?\s*['"`](?:N\/A|Unknown|Default|None|—|-)['"`]|\?\?\s*\[\s*\]|\|\|\s*['"`](?:N\/A|Unknown)['"`]/,
-    srcFilter,
+    fallbackFilter,
   );
   if (fallbackHits.length > 3) {
     result.findings.push(makeFinding({

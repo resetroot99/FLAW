@@ -155,5 +155,57 @@ export function analyzeBackendIntegrity(ctx: AnalyzerContext): AnalyzerResult {
     }
   }
 
+  // FK-BE-HARDCODED-001: API endpoint returns hardcoded fallback
+  const routeFilePattern = /(@router\.|@app\.|app\.(get|post|put|patch|delete)\(|router\.(get|post|put|patch|delete)\()/;
+  const routeFiles = filesMatching(ctx.fileContents, routeFilePattern, srcFilter);
+
+  for (const file of routeFiles) {
+    const content = ctx.fileContents.get(file);
+    if (!content) continue;
+    const lines = content.split('\n');
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+
+      // Detect except/catch blocks
+      const isExceptBlock = /\b(except|catch)\b/.test(line);
+      if (!isExceptBlock) continue;
+
+      // Scan the next several lines inside the except/catch for hardcoded returns
+      const blockLines = lines.slice(i, Math.min(i + 10, lines.length));
+      for (let j = 1; j < blockLines.length; j++) {
+        const bLine = blockLines[j];
+
+        // Stop scanning if we hit another block-level statement
+        if (/^\S/.test(bLine) && j > 1) break;
+        if (/\b(except|catch|finally|def |function |class |async def)\b/.test(bLine) && j > 1) break;
+
+        // Python: return {"status": "ok"} or return JSONResponse({...})
+        const pyHardcoded = bLine.match(/return\s+(\{[^}]*\}|JSONResponse\s*\(\s*\{[^}]*\})/);
+        // JS/TS: res.json({...}) or res.send({...})
+        const jsHardcoded = bLine.match(/res\.(json|send|status\s*\(\s*\d+\s*\)\s*\.json)\s*\(\s*\{[^}]*\}/);
+
+        if (pyHardcoded || jsHardcoded) {
+          const matched = (pyHardcoded || jsHardcoded)![0];
+          result.findings.push(makeFinding({
+            ruleId: 'FK-BE-HARDCODED-001',
+            title: 'API endpoint returns hardcoded fallback',
+            categoryId: 'BE',
+            severity: 'high',
+            confidence: 'medium',
+            labels: ['Misleading', 'Fake Flow'],
+            summary: `Hardcoded response in except/catch block at ${file}:${i + j + 1}: ${matched.slice(0, 60)}`,
+            impact: 'Endpoint returns static data when a dependency fails instead of surfacing the error.',
+            location: { file, startLine: i + j + 1 },
+            codeSnippet: extractSnippet(ctx.fileContents, file, i + j + 1, 3, 2),
+            suggestedFix: 'Return a proper error response or re-raise the exception instead of swallowing it with fake data.',
+          }));
+          result.smellHits.push(makeSmell('SMELL-HARDCODED-FALLBACK', 'API returns hardcoded fallback', 1));
+          break; // Only flag once per except/catch block
+        }
+      }
+    }
+  }
+
   return result;
 }

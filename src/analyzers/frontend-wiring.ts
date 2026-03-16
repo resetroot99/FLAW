@@ -121,5 +121,45 @@ export function analyzeFrontendWiring(ctx: AnalyzerContext): AnalyzerResult {
     }));
   }
 
+  // FK-FW-NOOP-001: Interactive element with no action handler
+  const noopComponents = /<(MenuItem|DropdownItem|ListItem|Tab|NavItem|AccordionItem|ListGroupItem|ActionIcon|IconButton)\b/;
+  for (const [file, content] of ctx.fileContents) {
+    if (!uiFilter(file)) continue;
+    const lines = content.split('\n');
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const compMatch = line.match(noopComponents);
+      if (!compMatch) continue;
+
+      // Build the full tag by collecting lines until we find the closing >
+      const region = lines.slice(i, Math.min(i + 8, lines.length)).join('\n');
+      // Extract the full opening tag
+      const tagRegex = new RegExp(`<${compMatch[1]}\\b[^>]*>`, 's');
+      const fullTag = region.match(tagRegex);
+      if (!fullTag) continue;
+
+      const tag = fullTag[0];
+      const hasHandler = /\b(onClick|onSelect|onChange|onPress|href|to)\s*=/i.test(tag);
+      const isDisabled = /\bdisabled\b/i.test(tag);
+
+      if (!hasHandler && !isDisabled) {
+        result.findings.push(makeFinding({
+          ruleId: 'FK-FW-NOOP-001',
+          title: 'Interactive element with no action handler',
+          categoryId: 'FW',
+          severity: 'medium',
+          confidence: 'medium',
+          labels: ['Dead Control', 'Incomplete'],
+          summary: `<${compMatch[1]}> at line ${i + 1} has no onClick, onSelect, onChange, href, or to handler.`,
+          impact: 'Users interact with a control that does nothing.',
+          location: { file, startLine: i + 1 },
+          codeSnippet: extractSnippet(ctx.fileContents, file, i + 1, 1, 3),
+          suggestedFix: `Add an onClick, onSelect, or onChange handler to this <${compMatch[1]}>.`,
+        }));
+      }
+    }
+  }
+
   return result;
 }
