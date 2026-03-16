@@ -365,7 +365,7 @@ const commands: Command[] = [
     usage: '/rules [--md]',
     handler: async (session, args) => {
       if (!requireScan(session)) return;
-      const format = args.includes('--md') ? 'claude' as const : 'cursorrules' as const;
+      const format = args.includes('--md') ? 'md' as const : 'cursorrules' as const;
       const path = exportAgentRules(session.report!, session.outputDir, format);
       console.log(`\n  ${c.green}✓${c.reset} Exported: ${c.underline}${path}${c.reset}\n`);
     },

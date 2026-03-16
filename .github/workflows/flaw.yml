@@ -26,7 +26,6 @@ jobs:
           path: "."
           threshold: "60"
           fail-on-critical: "true"
-          report-format: "terminal"
           comment: "true"
 
       - name: Print results

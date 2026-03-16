@@ -24,6 +24,7 @@ import { exportBadge } from './engine/badge.js';
 import { runPreCommit, formatPreCommitLine } from './engine/pre-commit.js';
 import { getTelemetryConfig, telemetryConfigExists, promptTelemetryConsent, saveTelemetryChoice, sendTelemetry } from './engine/telemetry.js';
 import { checkIntegrity } from './engine/integrity.js';
+import { runGitHubReporter, writeJsonToStdout } from './engine/github-reporter.js';
 import type { AuditReport } from './types/index.js';
 
 function printUsage(): void {
@@ -47,6 +48,8 @@ function printUsage(): void {
     --fixes        Export fix guide (flaw-fixes.md)
     --prompt       Export AI-ready prompt (flaw-prompt.md)
     --prompt-stdout  Print AI prompt to stdout only (for piping)
+    --json-stdout    Print JSON report to stdout (for CI piping)
+    --github         GitHub Actions mode (annotations, job summary, outputs)
     --roadmap      Export production readiness roadmap (flaw-roadmap.md)
     --purpose      Export purpose alignment plan (flaw-purpose-plan.md)
     --badge        Export SVG score badge (flaw-badge.svg)
@@ -96,7 +99,9 @@ async function main(): Promise<void> {
   let exportPurposeFlag = false;
   let exportBadgeFlag = false;
   let exportRulesFlag = false;
-  let rulesFormat: 'cursorrules' | 'claude' = 'cursorrules';
+  let rulesFormat: 'cursorrules' | 'md' = 'cursorrules';
+  let jsonStdout = false;
+  let githubMode = false;
   let preCommitMode = false;
   let watchMode = false;
   let noIgnore = false;
@@ -114,7 +119,9 @@ async function main(): Promise<void> {
 
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
-    if (arg === '--pre-commit') { preCommitMode = true; hasFlags = true; }
+    if (arg === '--json-stdout') { jsonStdout = true; hasFlags = true; }
+    else if (arg === '--github') { githubMode = true; hasFlags = true; }
+    else if (arg === '--pre-commit') { preCommitMode = true; hasFlags = true; }
     else if (arg === '--interactive' || arg === '-i') { interactive = true; hasFlags = true; }
     else if (arg === '--json') { exportJsonFlag = true; hasFlags = true; }
     else if (arg === '--markdown' || arg === '--md') { exportMdFlag = true; hasFlags = true; }
@@ -126,7 +133,7 @@ async function main(): Promise<void> {
     else if (arg === '--purpose') { exportPurposeFlag = true; hasFlags = true; }
     else if (arg === '--badge') { exportBadgeFlag = true; hasFlags = true; }
     else if (arg === '--rules') { exportRulesFlag = true; hasFlags = true; }
-    else if (arg === '--rules-md') { exportRulesFlag = true; rulesFormat = 'claude'; hasFlags = true; }
+    else if (arg === '--rules-md') { exportRulesFlag = true; rulesFormat = 'md'; hasFlags = true; }
     else if (arg === '--watch') { watchMode = true; hasFlags = true; }
     else if (arg === '--baseline') {
       baselineFlag = true; hasFlags = true;
@@ -274,6 +281,18 @@ async function main(): Promise<void> {
     } else {
       console.log(`  ${diffPath} not found — skipping diff.\n`);
     }
+  }
+
+  // GitHub Actions mode — annotations, job summary, outputs, then exit
+  if (githubMode) {
+    runGitHubReporter(report, triage);
+    process.exit(summary.status === 'fail' ? 1 : 0);
+  }
+
+  // JSON stdout — pipe-friendly, then exit
+  if (jsonStdout) {
+    writeJsonToStdout(report);
+    process.exit(summary.status === 'fail' ? 1 : 0);
   }
 
   if (!quiet && !promptStdout) {

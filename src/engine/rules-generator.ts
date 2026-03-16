@@ -166,9 +166,9 @@ export function generateAgentRules(report: AuditReport): string {
   return output;
 }
 
-export function exportAgentRules(report: AuditReport, outputDir: string, format: 'cursorrules' | 'claude' = 'cursorrules'): string {
+export function exportAgentRules(report: AuditReport, outputDir: string, format: 'cursorrules' | 'md' = 'cursorrules'): string {
   const content = generateAgentRules(report);
-  const filename = format === 'claude' ? 'AGENT_RULES.md' : '.cursorrules';
+  const filename = format === 'md' ? 'AGENT_RULES.md' : '.cursorrules';
   const path = join(outputDir, filename);
   writeFileSync(path, content);
   return path;
