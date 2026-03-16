@@ -130,6 +130,16 @@ export function analyzeIntegrationFlow(ctx: AnalyzerContext): AnalyzerResult {
 
     let anyProducerConsumed = false;
 
+    // Collect model/table names from producer files for database-mediated flow detection
+    const producerModelNames = new Set<string>();
+    for (const pf of producerFiles) {
+      const pc = ctx.fileContents.get(pf);
+      if (!pc) continue;
+      // Extract model class names written by producers
+      const modelRefs = pc.matchAll(/\b([A-Z][a-zA-Z]+(?:Hit|Record|Event|Entry|Signal|Result|Log))\b/g);
+      for (const m of modelRefs) producerModelNames.add(m[1]);
+    }
+
     for (const consumer of consumerFiles) {
       const content = ctx.fileContents.get(consumer);
       if (!content) continue;
@@ -141,6 +151,15 @@ export function analyzeIntegrationFlow(ctx: AnalyzerContext): AnalyzerResult {
           'i'
         );
         if (importRe.test(content)) {
+          anyProducerConsumed = true;
+          break;
+        }
+      }
+      if (anyProducerConsumed) break;
+
+      // Also check if consumer references producer model names (database-mediated flow)
+      for (const modelName of producerModelNames) {
+        if (content.includes(modelName)) {
           anyProducerConsumed = true;
           break;
         }

@@ -160,6 +160,10 @@ export function analyzeBackendIntegrity(ctx: AnalyzerContext): AnalyzerResult {
   const routeFiles = filesMatching(ctx.fileContents, routeFilePattern, srcFilter);
 
   for (const file of routeFiles) {
+    // Skip health check files — they are SUPPOSED to return status data
+    const fileName = file.split('/').pop() || '';
+    if (/health/i.test(fileName)) continue;
+
     const content = ctx.fileContents.get(file);
     if (!content) continue;
     const lines = content.split('\n');
@@ -171,14 +175,22 @@ export function analyzeBackendIntegrity(ctx: AnalyzerContext): AnalyzerResult {
       const isExceptBlock = /\b(except|catch)\b/.test(line);
       if (!isExceptBlock) continue;
 
-      // Scan the next several lines inside the except/catch for hardcoded returns
-      const blockLines = lines.slice(i, Math.min(i + 10, lines.length));
-      for (let j = 1; j < blockLines.length; j++) {
+      // Determine the indentation of the except/catch block
+      const exceptIndent = (line.match(/^(\s*)/) || ['', ''])[1].length;
+
+      // Scan the next several lines INSIDE the except/catch block only
+      const blockLines = lines.slice(i + 1, Math.min(i + 10, lines.length));
+      for (let j = 0; j < blockLines.length; j++) {
         const bLine = blockLines[j];
 
-        // Stop scanning if we hit another block-level statement
-        if (/^\S/.test(bLine) && j > 1) break;
-        if (/\b(except|catch|finally|def |function |class |async def)\b/.test(bLine) && j > 1) break;
+        // Stop scanning if we exit the except/catch block (same or less indentation)
+        if (j > 0 && bLine.trim().length > 0) {
+          const bIndent = (bLine.match(/^(\s*)/) || ['', ''])[1].length;
+          if (bIndent <= exceptIndent) break;
+        }
+
+        // Stop if we hit another block statement
+        if (/\b(except|catch|finally|def |function |class |async def)\b/.test(bLine) && j > 0) break;
 
         // Python: return {"status": "ok"} or return JSONResponse({...})
         const pyHardcoded = bLine.match(/return\s+(\{[^}]*\}|JSONResponse\s*\(\s*\{[^}]*\})/);
@@ -194,10 +206,10 @@ export function analyzeBackendIntegrity(ctx: AnalyzerContext): AnalyzerResult {
             severity: 'high',
             confidence: 'medium',
             labels: ['Misleading', 'Fake Flow'],
-            summary: `Hardcoded response in except/catch block at ${file}:${i + j + 1}: ${matched.slice(0, 60)}`,
+            summary: `Hardcoded response in except/catch block at ${file}:${i + j + 2}: ${matched.slice(0, 60)}`,
             impact: 'Endpoint returns static data when a dependency fails instead of surfacing the error.',
-            location: { file, startLine: i + j + 1 },
-            codeSnippet: extractSnippet(ctx.fileContents, file, i + j + 1, 3, 2),
+            location: { file, startLine: i + j + 2 },
+            codeSnippet: extractSnippet(ctx.fileContents, file, i + j + 2, 3, 2),
             suggestedFix: 'Return a proper error response or re-raise the exception instead of swallowing it with fake data.',
           }));
           result.smellHits.push(makeSmell('SMELL-HARDCODED-FALLBACK', 'API returns hardcoded fallback', 1));
